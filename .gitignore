@@ -2,3 +2,12 @@
 .idea
 build
 cmake-build*
+lib*
+opencv-4.5.1
+.cache 
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+Makefile 
+data/debug
+test_sift 
