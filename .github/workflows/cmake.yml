@@ -21,6 +21,9 @@ jobs:
       - name: Build and install OpenCV 4.5.1
         run: sudo bash .github/scripts/install_opencv451.sh;
 
+      - name: Install Eigen 3
+        run: sudo bash .github/scripts/install_eigen3.sh
+
 #      - name: Install OpenCL CPU driver
 #        run: sudo bash .github/scripts/install_intel_opencl.sh;
 
@@ -37,3 +40,7 @@ jobs:
       - name: test_matching
         working-directory: ${{github.workspace}}
         run: ./build/test_matching
+
+      - name: test_sfm
+        working-directory: ${{github.workspace}}
+        run: ./build/test_sfm
