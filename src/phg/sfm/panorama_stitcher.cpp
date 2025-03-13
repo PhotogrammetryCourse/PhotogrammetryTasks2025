@@ -3,6 +3,7 @@
 
 #include <libutils/bbox2.h>
 #include <iostream>
+#include <stack>
 
 /*
  * imgs - список картинок
@@ -21,9 +22,23 @@ cv::Mat phg::stitchPanorama(const std::vector<cv::Mat> &imgs,
     // вектор гомографий, для каждой картинки описывает преобразование до корня
     std::vector<cv::Mat> Hs(n_images);
     {
-        // здесь надо посчитать вектор Hs
-        // при этом можно обойтись n_images - 1 вызовами функтора homography_builder
-        throw std::runtime_error("not implemented yet");
+        std::vector<bool> used(n_images);
+        std::function<void(int)> computeHomography = [&](int i) -> void {
+            if (!used[i]) {
+                int parent_idx = parent[i];
+                if (parent_idx == -1) {
+                    Hs[i] = cv::Mat::eye(3, 3, CV_64F); // identity matrix
+                } else {
+                    cv::Mat homography = homography_builder(imgs[i], imgs[parent_idx]);
+                    computeHomography(parent_idx);
+                    Hs[i] = Hs[parent_idx] * homography;
+                }
+            }
+            used[i] = true;
+        };
+        for (size_t i = 0; i < n_images; ++i) {
+            computeHomography(i);
+        }
     }
 
     bbox2<double, cv::Point2d> bbox;
