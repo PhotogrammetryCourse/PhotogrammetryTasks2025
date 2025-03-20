@@ -1,24 +1,24 @@
 В этом репозитории предложены задания курса по Фотограмметрии для студентов МКН/ИТМО/ВШЭ.
 
-[Остальные задания](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2024/).
+[Остальные задания](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2025/).
 
 # Задание 4. SFM. Ceres Solver и Bundle Adjustment.
 
-[![Build Status](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2024/actions/workflows/cmake.yml/badge.svg?branch=task04&event=push)](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2024/actions/workflows/cmake.yml)
+[![Build Status](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2025/actions/workflows/cmake.yml/badge.svg?branch=task04&event=push)](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2024/actions/workflows/cmake.yml)
 
 0. Установить Eigen (если не установили в прошлом задании) и  Ceres Solver - см. инструкции в CMakeLists.txt
 1. Выполнить задания ниже
 2. Отправить **Pull-request** с названием```Task04 <Имя> <Фамилия> <Аффиляция>```:
 
- - Скопируйте в описание [шаблон](https://raw.githubusercontent.com/PhotogrammetryCourse/PhotogrammetryTasks2024/task04/.github/pull_request_template.md)
+ - Скопируйте в описание [шаблон](https://raw.githubusercontent.com/PhotogrammetryCourse/PhotogrammetryTasks2025/task04/.github/pull_request_template.md)
  - Обязательно отправляйте PR из вашей ветки **task04** (вашего форка) в ветку **task04** (основного репозитория)
  - Перечислите свои мысли по вопросам поднятым в коде и просто появившиеся в процессе выполнения задания
  - Создайте PR
  - Затем дождавшись отработку Travis CI (около 15 минут) - скопируйте в описание PR вывод исполнения вашей программы **на CI** (через редактирование описания PR или комментарием, главное используйте пожалуйста спойлер для компактности)
 
-**Мягкий дедлайн**: лекция 31 марта.
+**Мягкий дедлайн**: лекция 27 марта.
 
-**Жесткий дедлайн**: вечер 7 апреля.
+**Жесткий дедлайн**: вечер 3 апреля.
 
 Задание 4.1.
 =========
