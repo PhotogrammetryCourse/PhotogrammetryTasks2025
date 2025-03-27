@@ -3,13 +3,13 @@
 #include "defines.h"
 #include "sfm_utils.h"
 #include <Eigen/SVD>
-#include <iostream>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
+#include <iostream>
 
 namespace {
 
-  constexpr int32_t TW = 12;
+constexpr int32_t TW = 12;
 
 // Сделать из первого минора 3х3 матрицу вращения, скомпенсировать масштаб у
 // компоненты сдвига
@@ -34,8 +34,7 @@ matrix34d canonicalizeP(const matrix34d &P) {
 
   Eigen::MatrixXd RRe;
   copy(RR, RRe);
-  const Eigen::JacobiSVD svd(RRe, Eigen::ComputeFullU |
-                                  Eigen::ComputeFullV);
+  const Eigen::JacobiSVD svd(RRe, Eigen::ComputeFullU | Eigen::ComputeFullV);
   RRe = svd.matrixU() * svd.matrixV().transpose();
   copy(RRe, RR);
 
@@ -86,7 +85,8 @@ cv::Matx34d estimateCameraMatrixRANSAC(const phg::Calibration &calib,
                                        const std::vector<cv::Vec3d> &X,
                                        const std::vector<cv::Vec2d> &x) {
   if (X.size() != x.size()) {
-      throw std::runtime_error("estimateCameraMatrixRANSAC: X.size() != x.size()");
+    throw std::runtime_error(
+        "estimateCameraMatrixRANSAC: X.size() != x.size()");
   }
 
   const int n_points = X.size();
@@ -105,45 +105,47 @@ cv::Matx34d estimateCameraMatrixRANSAC(const phg::Calibration &calib,
 
   std::vector<int> sample;
   for (int i_trial = 0; i_trial < n_trials; ++i_trial) {
-      phg::randomSample(sample, n_points, n_samples, &seed);
+    phg::randomSample(sample, n_points, n_samples, &seed);
 
-      cv::Vec3d ms0[n_samples];
-      cv::Vec3d ms1[n_samples];
-      for (int i = 0; i < n_samples; ++i) {
-          ms0[i] = X[sample[i]];
-          ms1[i] = calib.unproject(x[sample[i]]);
+    cv::Vec3d ms0[n_samples];
+    cv::Vec3d ms1[n_samples];
+    for (int i = 0; i < n_samples; ++i) {
+      ms0[i] = X[sample[i]];
+      ms1[i] = calib.unproject(x[sample[i]]);
+    }
+
+    cv::Matx34d P = estimateCameraMatrixDLT(ms0, ms1, n_samples);
+
+    int support = 0;
+    for (int i = 0; i < n_points; ++i) {
+      cv::Vec4d X4(X[i][0], X[i][1], X[i][2], 1);
+      cv::Vec3d proj = calib.project(P * X4);
+
+      if (auto px = cv::Vec2d(proj[0] / proj[2], proj[1] / proj[2]);
+          norm(px - x[i]) < threshold_px) {
+        ++support;
       }
+    }
 
-      cv::Matx34d P = estimateCameraMatrixDLT(ms0, ms1, n_samples);
+    if (support > best_support) {
+      best_support = support;
+      best_P = P;
 
-      int support = 0;
-      for (int i = 0; i < n_points; ++i) {
-          cv::Vec4d X4(X[i][0], X[i][1], X[i][2], 1);
-          cv::Vec3d proj = calib.project(P * X4);
+      std::cout << "estimateCameraMatrixRANSAC : support: " << best_support
+                << "/" << n_points << std::endl;
 
-          if (auto px = cv::Vec2d(proj[0] / proj[2], proj[1] / proj[2]); cv::norm(px - x[i]) < threshold_px) {
-              ++support;
-          }
+      if (best_support == n_points) {
+        break;
       }
-
-      if (support > best_support) {
-          best_support = support;
-          best_P = P;
-
-          std::cout << "estimateCameraMatrixRANSAC : support: " <<
-          best_support << "/" << n_points << std::endl;
-
-          if (best_support == n_points) {
-              break;
-          }
-      }
+    }
   }
 
-  std::cout << "estimateCameraMatrixRANSAC : best support: " <<
-  best_support << "/" << n_points << std::endl;
+  std::cout << "estimateCameraMatrixRANSAC : best support: " << best_support
+            << "/" << n_points << std::endl;
 
   if (best_support == 0) {
-      throw std::runtime_error("estimateCameraMatrixRANSAC : failed to estimate camera matrix");
+    throw std::runtime_error(
+        "estimateCameraMatrixRANSAC : failed to estimate camera matrix");
   }
 
   return best_P;
