@@ -97,7 +97,7 @@ cv::Matx34d estimateCameraMatrixRANSAC(const phg::Calibration &calib,
 
   const double threshold_px = 3;
 
-  const int n_samples = 10;
+  const int n_samples = 6;
   uint64_t seed = 1;
 
   int best_support = 0;

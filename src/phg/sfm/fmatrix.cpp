@@ -59,6 +59,7 @@ cv::Matx33d estimateFMatrixDLT(const cv::Vec2d *m0, const cv::Vec2d *m1,
   Eigen::Matrix3d D = Eigen::Matrix3d::Zero(3, 3);
   D(0, 0) = sing[0];
   D(1, 1) = sing[1];
+  F = svdf.matrixU() * D * svdf.matrixV().transpose();
   cv::Matx33d Fcv;
   copy(F, Fcv);
   return Fcv;
@@ -70,11 +71,11 @@ cv::Matx33d estimateFMatrixDLT(const cv::Vec2d *m0, const cv::Vec2d *m1,
 // essential?)
 cv::Matx33d getNormalizeTransform(const std::vector<cv::Vec2d> &m) {
   cv::Vec2d mean;
-  for (auto &&v : m) {
+  for (auto&& v : m) {
     mean += v;
   }
 
-  mean = mean / (1.0 / m.size());
+  mean = mean * (1.0 / m.size());
   double rms = 0;
   for (const cv::Vec2d &v : m) {
     cv::Vec2d dist = v - mean;
@@ -127,9 +128,8 @@ cv::Matx33d estimateFMatrixRANSAC(const std::vector<cv::Vec2d> &m0,
   }
   //        // https://en.wikipedia.org/wiki/Random_sample_consensus#Parameters
   //        // будет отличаться от случая с гомографией
-  const int n_trials = 10000;
+  constexpr int n_trials = 15000;
 
-  const int n_samples = 10;
   uint64_t seed = 1;
 
   int best_support = 0;
@@ -137,6 +137,7 @@ cv::Matx33d estimateFMatrixRANSAC(const std::vector<cv::Vec2d> &m0,
 
   std::vector<int> sample;
   for (int i_trial = 0; i_trial < n_trials; ++i_trial) {
+    constexpr int n_samples = 8;
     phg::randomSample(sample, n_matches, n_samples, &seed);
 
     cv::Vec2d ms0[n_samples];
