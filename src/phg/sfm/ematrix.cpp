@@ -1,12 +1,14 @@
+#include <Eigen/Dense>
+#include <Eigen/SVD>
+#include <iostream>
+
+
 #include "ematrix.h"
 
 #include "defines.h"
 #include "fmatrix.h"
 #include "triangulation.h"
 
-#include <Eigen/Dense>
-#include <Eigen/SVD>
-#include <iostream>
 
 namespace {
 

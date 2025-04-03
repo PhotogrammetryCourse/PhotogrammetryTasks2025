@@ -1,10 +1,13 @@
+#include <Eigen/SVD>
+#include <iostream>
+#include <opencv2/calib3d.hpp>
+
+
 #include "fmatrix.h"
 #include "defines.h"
 #include "sfm_utils.h"
 
-#include <Eigen/SVD>
-#include <iostream>
-#include <opencv2/calib3d.hpp>
+
 
 namespace {
 

@@ -1,9 +1,11 @@
+#include <Eigen/SVD>
+#include <iostream>
+
 #include "resection.h"
 
 #include "defines.h"
 #include "sfm_utils.h"
-#include <Eigen/SVD>
-#include <iostream>
+
 
 namespace {
 

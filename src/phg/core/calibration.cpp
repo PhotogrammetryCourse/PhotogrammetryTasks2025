@@ -1,5 +1,6 @@
-#include "calibration.h"
 #include <phg/sfm/defines.h>
+
+#include "calibration.h"
 
 phg::Calibration::Calibration(int width, int height)
     : width_(width), height_(height), cx_(0), cy_(0), k1_(0), k2_(0) {

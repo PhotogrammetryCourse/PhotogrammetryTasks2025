@@ -1,7 +1,7 @@
-#include "bruteforce_matcher.h"
-
 #include <iostream>
 #include <libutils/rasserts.h>
+
+#include "bruteforce_matcher.h"
 
 void phg::BruteforceMatcher::train(const cv::Mat &train_desc) {
   if (train_desc.rows < 2) {

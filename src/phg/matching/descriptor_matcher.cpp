@@ -1,7 +1,9 @@
+#include <opencv2/flann/miniflann.hpp>
+
 #include "descriptor_matcher.h"
 
 #include "flann_factory.h"
-#include <opencv2/flann/miniflann.hpp>
+
 
 void phg::DescriptorMatcher::filterMatchesRatioTest(
     const std::vector<std::vector<cv::DMatch>> &matches,

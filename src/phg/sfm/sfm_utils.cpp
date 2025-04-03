@@ -1,7 +1,9 @@
-#include "sfm_utils.h"
-
 #include <algorithm>
 #include <stdexcept>
+
+#include "sfm_utils.h"
+
+
 
 // pseudorandom number generator
 uint64_t xorshift64(uint64_t *state) {

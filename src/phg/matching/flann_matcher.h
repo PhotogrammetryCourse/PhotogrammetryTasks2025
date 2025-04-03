@@ -1,7 +1,9 @@
 #pragma once
 
-#include "descriptor_matcher.h"
 #include <opencv2/flann/miniflann.hpp>
+
+#include "descriptor_matcher.h"
+
 
 namespace phg {
 

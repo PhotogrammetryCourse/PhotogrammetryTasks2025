@@ -1,8 +1,10 @@
+#include <iostream>
+#include <libutils/bbox2.h>
+
+
 #include "panorama_stitcher.h"
 #include "homography.h"
 
-#include <iostream>
-#include <libutils/bbox2.h>
 
 /*
  * imgs - список картинок

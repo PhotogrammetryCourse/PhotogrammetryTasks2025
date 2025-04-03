@@ -4,13 +4,16 @@
 //  Created by Cedric Leblond Menard on 16-06-27.
 //  Copyright © 2016 Cedric Leblond Menard. All rights reserved.
 //
-#include "point_cloud_export.h"
 
-#include "opencv2/core/core.hpp"
 #include <fstream>
 #include <iomanip>
 #include <stdio.h>
 #include <string>
+
+#include "point_cloud_export.h"
+
+#include "opencv2/core/core.hpp"
+
 
 namespace {
 

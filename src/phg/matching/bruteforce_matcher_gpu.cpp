@@ -1,5 +1,3 @@
-#include "bruteforce_matcher_gpu.h"
-
 #include <iostream>
 #include <libutils/misc.h>
 #include <libutils/rasserts.h>
@@ -7,6 +5,10 @@
 
 #include <libgpu/context.h>
 #include <libgpu/shared_device_buffer.h>
+
+#include "bruteforce_matcher_gpu.h"
+
+
 
 // Этот файл будет сгенерирован автоматически в момент сборки - см.
 // convertIntoHeader в CMakeLists.txt

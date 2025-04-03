@@ -1,6 +1,8 @@
+#include <iostream>
+
 #include "flann_matcher.h"
 #include "flann_factory.h"
-#include <iostream>
+
 
 phg::FlannMatcher::FlannMatcher() {
   // параметры для приближенного поиска

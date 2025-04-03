@@ -1,8 +1,10 @@
+#include <Eigen/SVD>
+
 #include "triangulation.h"
 
 #include "defines.h"
 
-#include <Eigen/SVD>
+
 
 // Используем DLT метод, составляем систему уравнений. Система похожа на систему
 // для гомографии, там пары уравнений получались из выражений вида x (cross) Hx
