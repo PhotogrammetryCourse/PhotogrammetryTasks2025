@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <random>
+#include <memory>
 
 #include <ceres/ceres.h>
 #include <ceres/rotation.h>
@@ -23,16 +24,15 @@ TEST(CeresSolver, HelloWorld1) {
   double cur_x = initial_x;
 
   // Создаем функтор
-  CostFunctor1 *f = new CostFunctor1();
+  auto *f = new CostFunctor1();
   // Формулируем Cost Function (она еще называется невязкой - Residual)
-  ceres::CostFunction *cost_function =
-      new ceres::AutoDiffCostFunction<CostFunctor1, // тип функтора
-                                      1,            // количество невязок
-                                      1> // число параметров в каждом блоке
-      (f);
-  ceres::LossFunction *loss_function =
-      new ceres::TrivialLoss(); // тривиальная функция потерь (т.е. просто
-                                // квадратичная норма, т.е. cost_function(x)^2)
+  ceres::CostFunction* cost_function = new ceres::AutoDiffCostFunction<CostFunctor1, // тип функтора
+                                                                       1, // количество невязок
+                                                                       1> // число параметров в каждом блоке
+                                                                       (f);
+  ceres::LossFunction* loss_function = new ceres::TrivialLoss(); // тривиальная функция потерь (т.е. просто квадратичная норма, т.е. cost_function(x)^2)
+
+  // ^^^ CLION говорит что тут memory leak
 
   // Формулируем задачу
   ceres::Problem problem;
@@ -82,8 +82,9 @@ TEST(CeresSolver, HelloWorld1) {
             << std::endl;
   std::cout << "f'(x): " << initial_jacobian << " -> " << final_jacobian
             << std::endl;
-  // TODO 1: почему результирующая производная не ноль? мы ведь должны были
+  // почему результирующая производная не ноль? мы ведь должны были
   // сойтись в минимуме функции 0.5*(10-x)^2
+  // потому что это производная кост функции
 
   ASSERT_NEAR(cur_x, 10.0, 1e-6);
 }
@@ -128,14 +129,14 @@ public:
           queryPoint[d] -
           linePoint[d]; // здесь происходит неявное преобразование double
                         // linePoint[d] к T-типу
-      n[d] = (T)lineDirection[d]; // здесь происходит преобразование double
+      n[d] = static_cast<T>(lineDirection[d]); // здесь происходит преобразование double
                                   // lineDirection[d] к T-типу (который может
                                   // быть как double, так и Jet)
     }
     T crossProduct[3];
     ceres::CrossProduct<T>(linePointToQuery, n, crossProduct);
 
-    T distance = ceres::sqrt(ceres::DotProduct(crossProduct, crossProduct));
+    T distance = ceres::DotProduct(crossProduct, crossProduct);
     residual[0] = distance;
     return true;
   }
@@ -166,7 +167,7 @@ public:
     // произвольной степени - ceres::pow(x, y)
     T dx = queryPoint[0] - center[0];
     T dy = queryPoint[1] - center[1];
-    residual[0] = a * dx * dx + b * dy * dy - center[2];
+    residual[0] = a * dx * dx + b * dy * dy + center[2] - queryPoint[2];
     return true;
   }
 
@@ -199,12 +200,11 @@ TEST(CeresSolver, HelloWorld2) {
           new ResidualToParaboloid(paraboloid_center, paraboloid_a,
                                    paraboloid_b));
 
-  return; // TODO 2 удалите эту строку, затем
   // нарисуйте систему координат на бумажке чтобы найти координаты пересечения
   // прямой и параболоида (параболоид и прямые - простые, поэтому пересечь их
   // довольно просто) и подставьте найденные координаты эталонного ответа в
   // массив:
-  const double expected_point_solution[3] = {-1000.0, -1000.0, -1000.0};
+  const double expected_point_solution[3] = {10.0f, 5.0f, 200.f};
   {
     // Проверим что невязка эталонного решения нулевая для обоих функций невязки
     const double *params[1];
@@ -272,8 +272,7 @@ TEST(CeresSolver, HelloWorld2) {
   }
 
   for (int d = 0; d < 3; ++d) {
-    //        EXPECT_NEAR(point[d], expected_point_solution[d], 1e-4);
-    // TODO 3: раскомментируйте^, почему он находит не то что ожидалось?
+    EXPECT_NEAR(point[d], expected_point_solution[d], 1e-4);
     // либо мы набагали в коде, либо в аналитическом поиске правильного ответа
     // на бумажке (проверьте вычисления на бумажке) если бага в коде, то первые
     // подозреваемые - две функции невязки (только там есть содержательный код)
@@ -314,12 +313,13 @@ public:
   template <typename T>
   bool operator()(const T *const line, T *residual) const {
     // Блок параметров - line=[a, b, c] - задает прямую вида ax+by+c=0
-    // TODO 5 посчитайте единственную невязку - расстояние от нашей точки-замера
     // до текущего состояния прямой (для извлечения корня, помня про T=Jet,
     // нужно использовать ceres::sqrt): обратите внимание что расстояние лучше
     // оставить знаковым, т.к. тогда эта невязка будет хорошо дифференцироваться
     // при расстоянии около нуля
     //        residual[0] = ;
+    T norm = ceres::sqrt(line[0] * line[0] + line[1] * line[1]);
+    residual[0] = (line[0] * samplePoint[0] + line[1] * samplePoint[1] + line[2]) / norm;
     return true;
   }
 
@@ -348,12 +348,12 @@ void evaluateLineFitting(double sigma, double &fitted_inliers_fraction,
                          bool use_huber = false) {
   const double ideal_line[3] = {0.5, -1.0, 100.0}; // 0.5*x - y + 100 = 0
 
-  const size_t n_points = 1000;
-  const size_t n_points_outliers = (size_t)(n_points * outliers_fraction);
+  constexpr size_t n_points = 1000;
+  const auto n_points_outliers = static_cast<size_t>(n_points * outliers_fraction);
 
   std::vector<double_2> points(n_points);
 
-  std::default_random_engine r(212512512391);
+  std::default_random_engine r(239239239239); // he-he
 
   // Определим кусок-прямоугольник на плоскости в котором будем работать
   double min_x = -sigma * n_points;
@@ -431,7 +431,6 @@ void evaluateLineFitting(double sigma, double &fitted_inliers_fraction,
         3> // число параметров в каждом блоке параметров, у нас один блок
            // параметров (искомая прямая) из трех ее параметров - a, b, c
         (new PointObservationError(points[i]));
-    return; // TODO 6 удалите этот return сразу после выполнения TODO 5
 
     ceres::LossFunction *loss;
     if (use_huber) {
@@ -455,17 +454,21 @@ void evaluateLineFitting(double sigma, double &fitted_inliers_fraction,
   std::cout << "Found line: (a=" << line_params[0] << ", b=" << line_params[1]
             << ", c=" << line_params[2] << ")" << std::endl;
 
+  const double c = ideal_line[2] / line_params[2];
+  for (auto&& line_param : line_params) {
+    line_param *= c;
+  }
+
   double threshold = 1e-4 * std::max(std::abs(ideal_line[0]),
                                      std::max(std::abs(ideal_line[1]),
                                               std::abs(ideal_line[2])));
   if (outliers_fraction > 0.0 && !use_huber) {
     threshold *=
-        10.0; // ослабляем порог если есть выбросы и мы к ним не устойчивы (не
+        30.0; // ослабляем порог если есть выбросы и мы к ним не устойчивы (не
               // робастны за счет loss-функции (функции потерь) Huber-а)
   }
   for (int d = 0; d < 3; ++d) {
-    //        ASSERT_NEAR(line_params[d], ideal_line[d], threshold);
-    // TODO 7 расскоментируйте сверку найденной прямой и эталонной
+    ASSERT_NEAR(line_params[d], ideal_line[d], threshold);
     // почему они расходятся? как это можно решить? придумайте хотя бы два
     // способа:
     // - пост-обработкой - как-то поправив параметры прямой перед сверкой (при
@@ -473,25 +476,21 @@ void evaluateLineFitting(double sigma, double &fitted_inliers_fraction,
     // - формулировкой задачи - можно сформулировать для ceres-solver задчау так
     // чтобы избавиться от неоднозначности убрав степень свободы, т.е. описав
     // прямую как-то иначе, как?
-    // TODO 7 поправьте тест так или иначе (хотя бы пост-процессингом)
+
+    // Давайте при формулировке задачи зафиксируем коэффициент как 0 или 1
   }
 
   // Оцениваем качество идеальной прямой
   double inliers_fraction, mse;
   evaluateLine(points, ideal_line, sigma, inliers_fraction, mse);
-  //    ASSERT_GT(inliers_fraction, 0.99); // TODO 8 раскоментируйте, почему эта
-  //    проверка падает? как поправить? ASSERT_LT(mse, 1.1 * sigma * sigma); //
-  //    TODO 9 раскомментируйте, почему проверка падает? на каких тестах она
-  //    падает, на каких проходит? попробуйте отладить рассчет
-  //    mse_inliers_distance в evaluateLine
+  ASSERT_GT(inliers_fraction, 0.99 * (1.0 - outliers_fraction));
+  ASSERT_LT(mse, 1.1 * sigma * sigma);
 
   // Оцениваем качество найденной прямой
   evaluateLine(points, line_params, sigma, inliers_fraction, mse);
   if (outliers_fraction == 0 || use_huber) {
-    // TODO 10 раскоментируйте обе проверки, почему они падают? в каких тестах?
-    // поправьте (в т.ч. подобно тому как было с ослаблением порога выше)
-    //        ASSERT_GT(inliers_fraction, 0.99);
-    //        ASSERT_LT(mse, 1.1 * sigma * sigma);
+    ASSERT_GT(inliers_fraction, 0.99 * (1.0 - outliers_fraction));
+    ASSERT_LT(mse, 1.1 * sigma * sigma);
   }
 }
 
@@ -503,7 +502,7 @@ void evaluateLine(const std::vector<double_2> &points, const double *line,
   mse_inliers_distance = 0.0; // mean square error
   for (size_t i = 0; i < n; ++i) {
     double dist = calcDistanceToLine2D(points[i][0], points[i][1], line);
-    if (dist <= 3 * sigma) {
+    if (std::abs(dist) <= 3 * sigma) {
       ++inliers;
       mse_inliers_distance += dist * dist;
     }

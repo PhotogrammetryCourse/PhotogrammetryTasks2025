@@ -5,9 +5,9 @@ phg::Calibration::Calibration(int width, int height)
     : width_(width), height_(height), cx_(0), cy_(0), k1_(0), k2_(0) {
   // 50mm guess
 
-  double diag_35mm = 36.0 * 36.0 + 24.0 * 24.0;
-  double diag_pix =
-      (double)width * (double)width + (double)height * (double)height;
+  constexpr double diag_35mm = 36.0 * 36.0 + 24.0 * 24.0;
+  const double diag_pix =
+      static_cast<double>(width) * static_cast<double>(width) + static_cast<double>(height) * static_cast<double>(height);
 
   f_ = 50.0 * std::sqrt(diag_pix / diag_35mm);
 }
@@ -24,28 +24,33 @@ cv::Vec3d phg::Calibration::project(const cv::Vec3d &point) const {
   double x = point[0] / point[2];
   double y = point[1] / point[2];
 
-  // TODO 11: добавьте учет радиальных искажений (k1_, k2_) (после деления на Z,
-  // но до умножения на f)
+  const double rad = x * x + y * y;
+  const double rad_cor = 1 + k1_ * rad * k2_ * rad * rad;
 
-  x *= f_;
-  y *= f_;
+  x *= f_ * rad_cor;
+  y *= f_ * rad_cor;
 
   x += cx_ + width_ * 0.5;
   y += cy_ + height_ * 0.5;
 
-  return cv::Vec3d(x, y, 1.0);
+  return {x, y, 1.0};
 }
 
 cv::Vec3d phg::Calibration::unproject(const cv::Vec2d &pixel) const {
   double x = pixel[0] - cx_ - width_ * 0.5;
   double y = pixel[1] - cy_ - height_ * 0.5;
 
+  const double rad = x * x + y * y;
+  const double rad_cor = 1 + k1_ * rad + k2_ * rad * rad;
+  x /= rad_cor;
+  y /= rad_cor;
+
   x /= f_;
   y /= f_;
 
-  // TODO 12: добавьте учет радиальных искажений, когда реализуете - подумайте:
+
   // почему строго говоря это - не симметричная формула формуле из project? (но
   // лишь приближение)
 
-  return cv::Vec3d(x, y, 1.0);
+  return {x, y, 1.0};
 }
