@@ -8,12 +8,11 @@ namespace phg {
 
 struct Camera {
 
-    cv::Vec3d center() const;
+  cv::Vec3d center() const;
 
 private:
-    cv::Matx44d T; // transform: rotation + translation
-    Calibration calib; // intrinsic parameters
-
+  cv::Matx44d T;     // transform: rotation + translation
+  Calibration calib; // intrinsic parameters
 };
 
-}
+} // namespace phg
