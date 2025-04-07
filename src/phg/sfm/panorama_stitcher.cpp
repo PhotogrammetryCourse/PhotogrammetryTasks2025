@@ -1,5 +1,6 @@
 #include "panorama_stitcher.h"
 #include "homography.h"
+#include "libutils/rasserts.h"
 
 #include <libutils/bbox2.h>
 #include <iostream>
@@ -23,7 +24,35 @@ cv::Mat phg::stitchPanorama(const std::vector<cv::Mat> &imgs,
     {
         // здесь надо посчитать вектор Hs
         // при этом можно обойтись n_images - 1 вызовами функтора homography_builder
-        throw std::runtime_error("not implemented yet");
+        int root = -1;
+        // самая тяжелая часть, можно вынести отдельно и распараллелить
+        #pragma omp parallel for
+        for (int i = 0; i < n_images; ++i) {
+            if (parent[i] == -1) {
+                Hs[i] = cv::Mat::eye(3, 3, CV_64F);
+                root = i;
+                continue;
+            }
+            Hs[i] = homography_builder(imgs[i], imgs[parent[i]]);
+        }
+        rassert(root != -1, 534212345);
+        std::vector<bool> visited(n_images, false); // = нашли ли мы матрицу гомографий
+        visited[root] = true;
+
+        std::function<void(int)> dfs = [&](int v) {
+            int prnt = parent[v];
+            visited[v] = true;
+            if (!visited[prnt]) {
+                dfs(prnt);
+            }
+            Hs[v] = Hs[v] * Hs[prnt];
+        };
+        
+        for (int i = 0; i < n_images; ++i) {
+            if (!visited[i]) {
+                dfs(i);
+            }
+        }
     }
 
     bbox2<double, cv::Point2d> bbox;
@@ -51,7 +80,7 @@ cv::Mat phg::stitchPanorama(const std::vector<cv::Mat> &imgs,
 //                for (int x = 0; x < imgs[i].cols; ++x) {
 //                    cv::Vec3b color = imgs[i].at<cv::Vec3b>(y, x);
 //
-//                    cv::Point2d pt_dst = applyH(cv::Point2d(x, y), Hs[i]) - bbox.min();
+//                    cv::Point2d pt_dst = phg::transformPoint(cv::Point2d(x, y), Hs[i]) - bbox.min();
 //                    int y_dst = std::max(0, std::min((int) std::round(pt_dst.y), result_height - 1));
 //                    int x_dst = std::max(0, std::min((int) std::round(pt_dst.x), result_width - 1));
 //
