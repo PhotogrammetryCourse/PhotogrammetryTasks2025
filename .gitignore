@@ -12,3 +12,4 @@ lib
 CMakeFiles
 .cache 
 libs
+Makefile
