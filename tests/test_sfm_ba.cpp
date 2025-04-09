@@ -22,14 +22,12 @@
 #include <ceres/rotation.h>
 
 #define ENABLE_BA 1
-
-
 #define NIMGS_LIMIT                                                            \
   100 // сколько фотографий обрабатывать (можно выставить меньше чтобы ускорить
       // экспериментирование, или в случае если весь датасет не выравнивается)
 #define INTRINSICS_CALIBRATION_MIN_IMGS                                        \
   5 // начиная со скольки камер начинать оптимизировать внутренние параметры
-    // камеры (фокальную длину и т.п.) - из соображений что "пока камер мало -
+    // камеры (фокальную длинну и т.п.) - из соображений что "пока камер мало -
     // наблюдений может быть недостаточно чтобы не сойтись к ложной внутренней
     // модели камеры"
 
@@ -83,7 +81,7 @@
 /*
 #define DATASET_DIR                  "perseverance25"
 #define DATASET_DOWNSCALE            1
-#define DATASET_F                    (4720.4 / DATASET_DOWNSCALE)
+#define DATASET_F                    4720.4
 // на этом датасете фотографии длиннофокусные, поэтому многие лучи почти
 колинеарны, поэтому этот фильтр подавляет все точки и третья камера не
 подвыравнивается #undef  ENABLE_OUTLIERS_FILTRATION_COLINEAR #define
@@ -128,22 +126,22 @@ public:
   Track() { disabled = false; }
 
   bool disabled;
-  std::vector<std::pair<int32_t, int32_t>> img_kpt_pairs;
+  std::vector<std::pair<int, int>> img_kpt_pairs;
 };
 
 } // namespace
 
 void generateTiePointsCloud(
-    const std::vector<vector3d> &tie_points, const std::vector<Track> &tracks,
-    const std::vector<std::vector<cv::KeyPoint>> &keypoints,
-    const std::vector<cv::Mat> &imgs, const std::vector<char> &aligned,
-    const std::vector<matrix34d> &cameras, int32_t ncameras,
+    const std::vector<vector3d> tie_points, const std::vector<Track> tracks,
+    const std::vector<std::vector<cv::KeyPoint>> keypoints,
+    const std::vector<cv::Mat> imgs, const std::vector<char> aligned,
+    const std::vector<matrix34d> cameras, int ncameras,
     std::vector<vector3d> &tie_points_and_cameras,
     std::vector<cv::Vec3b> &tie_points_colors);
 
 void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
            std::vector<std::vector<cv::KeyPoint>> &keypoints,
-           std::vector<matrix34d> &cameras, int32_t ncameras,
+           std::vector<matrix34d> &cameras, int ncameras,
            phg::Calibration &calib, bool verbose = false);
 
 TEST(SFM, ReconstructNViews) {
@@ -159,7 +157,7 @@ TEST(SFM, ReconstructNViews) {
     size_t nimages = 0;
     in >> nimages;
     std::cout << nimages << " images" << std::endl;
-    for (int32_t i = 0; i < nimages; ++i) {
+    for (int i = 0; i < nimages; ++i) {
       std::string img_name;
       in >> img_name;
       std::string img_path =
@@ -172,7 +170,7 @@ TEST(SFM, ReconstructNViews) {
 
       // выполняем уменьшение картинки если оригинальные картинки в этом
       // датасете - слишком большие для используемой реализации SIFT
-      int32_t downscale = DATASET_DOWNSCALE;
+      int downscale = DATASET_DOWNSCALE;
       while (downscale > 1) {
         cv::pyrDown(img, img);
         rassert(downscale % 2 == 0, 1249219412940115);
@@ -198,10 +196,10 @@ TEST(SFM, ReconstructNViews) {
 
   std::cout << "detecting points..." << std::endl;
   std::vector<std::vector<cv::KeyPoint>> keypoints(n_imgs);
-  std::vector<std::vector<int32_t>> track_ids(n_imgs);
+  std::vector<std::vector<int>> track_ids(n_imgs);
   std::vector<cv::Mat> descriptors(n_imgs);
   cv::Ptr<cv::FeatureDetector> detector = cv::SIFT::create();
-  for (int32_t i = 0; i < (int32_t)n_imgs; ++i) {
+  for (int i = 0; i < (int)n_imgs; ++i) {
     detector->detectAndCompute(imgs[i], cv::noArray(), keypoints[i],
                                descriptors[i]);
     track_ids[i].resize(keypoints[i].size(), -1);
@@ -212,9 +210,9 @@ TEST(SFM, ReconstructNViews) {
   std::vector<std::vector<Matches>> matches(n_imgs);
   size_t ndone = 0;
 #pragma omp parallel for
-  for (int32_t i = 0; i < n_imgs; ++i) {
+  for (int i = 0; i < n_imgs; ++i) {
     matches[i].resize(n_imgs);
-    for (int32_t j = 0; j < n_imgs; ++j) {
+    for (int j = 0; j < n_imgs; ++j) {
       if (i == j) {
         continue;
       }
@@ -225,13 +223,13 @@ TEST(SFM, ReconstructNViews) {
           DescriptorMatcher::create(DescriptorMatcher::FLANNBASED);
       matcher->knnMatch(descriptors[i], descriptors[j], knn_matches, 2);
       std::vector<DMatch> good_matches(knn_matches.size());
-      for (int32_t k = 0; k < (int32_t)knn_matches.size(); ++k) {
+      for (int k = 0; k < (int)knn_matches.size(); ++k) {
         good_matches[k] = knn_matches[k][0];
       }
 
       // Filtering matches GMS
       std::vector<DMatch> good_matches_gms;
-      int32_t inliers = phg::filterMatchesGMS(
+      int inliers = phg::filterMatchesGMS(
           good_matches, keypoints[i], keypoints[j], imgs[i].size(),
           imgs[j].size(), good_matches_gms, false);
 #pragma omp critical
@@ -285,7 +283,7 @@ TEST(SFM, ReconstructNViews) {
     aligned[1] = true;
 
     matrix34d Ps[2] = {P0, P1};
-    for (int32_t i = 0; i < (int32_t)good_matches_gms.size(); ++i) {
+    for (int i = 0; i < (int)good_matches_gms.size(); ++i) {
       vector3d ms[2] = {calib0.unproject(points0[i]),
                         calib1.unproject(points1[i])};
       vector4d X = phg::triangulatePoint(Ps, ms, 2);
@@ -307,7 +305,7 @@ TEST(SFM, ReconstructNViews) {
       tracks.push_back(track);
     }
 
-    int32_t ncameras = 2;
+    int ncameras = 2;
 
     std::vector<vector3d> tie_points_and_cameras;
     std::vector<cv::Vec3b> tie_points_colors;
@@ -319,6 +317,7 @@ TEST(SFM, ReconstructNViews) {
                               "/point_cloud_" + to_string(ncameras) +
                               "_cameras.ply",
                           tie_points_colors);
+
     runBA(tie_points, tracks, keypoints, cameras, ncameras, calib);
     generateTiePointsCloud(tie_points, tracks, keypoints, imgs, aligned,
                            cameras, ncameras, tie_points_and_cameras,
@@ -331,17 +330,17 @@ TEST(SFM, ReconstructNViews) {
   }
 
   // append remaining cameras one by one
-  for (int32_t i_camera = 2; i_camera < n_imgs; ++i_camera) {
+  for (int i_camera = 2; i_camera < n_imgs; ++i_camera) {
 
     const std::vector<cv::KeyPoint> &keypoints0 = keypoints[i_camera];
     const phg::Calibration &calib0 = calib;
 
     std::vector<vector3d> Xs;
     std::vector<vector2d> xs;
-    for (int32_t i_camera_prev = 0; i_camera_prev < i_camera; ++i_camera_prev) {
+    for (int i_camera_prev = 0; i_camera_prev < i_camera; ++i_camera_prev) {
       const Matches &good_matches_gms = matches[i_camera][i_camera_prev];
       for (const cv::DMatch &match : good_matches_gms) {
-        int32_t track_id = track_ids[i_camera_prev][match.trainIdx];
+        int track_id = track_ids[i_camera_prev][match.trainIdx];
         if (track_id != -1) {
           if (tracks[track_id].disabled)
             continue; // пропускаем выключенные точки (признанные выбросами)
@@ -355,18 +354,18 @@ TEST(SFM, ReconstructNViews) {
     std::cout << "Append camera #" << i_camera << " (" << imgs_labels[i_camera]
               << ") to alignment via " << Xs.size() << " common points"
               << std::endl;
-    rassert(!Xs.empty(), 2318254129859128305);
+    rassert(Xs.size() > 0, 2318254129859128305);
     matrix34d P = phg::findCameraMatrix(calib0, Xs, xs, false);
 
     cameras[i_camera] = P;
     aligned[i_camera] = true;
 
-    for (int32_t i_camera_prev = 0; i_camera_prev < i_camera; ++i_camera_prev) {
+    for (int i_camera_prev = 0; i_camera_prev < i_camera; ++i_camera_prev) {
       const std::vector<cv::KeyPoint> &keypoints1 = keypoints[i_camera_prev];
       const phg::Calibration &calib1 = calib;
       const Matches &good_matches_gms = matches[i_camera][i_camera_prev];
       for (const cv::DMatch &match : good_matches_gms) {
-        int32_t track_id = track_ids[i_camera_prev][match.trainIdx];
+        int track_id = track_ids[i_camera_prev][match.trainIdx];
         if (track_id == -1) {
           matrix34d Ps[2] = {P, cameras[i_camera_prev]};
           cv::Vec2f pts[2] = {keypoints0[match.queryIdx].pt,
@@ -397,7 +396,7 @@ TEST(SFM, ReconstructNViews) {
       }
     }
 
-    int32_t ncameras = i_camera + 1;
+    int ncameras = i_camera + 1;
 
     std::vector<vector3d> tie_points_and_cameras;
     std::vector<cv::Vec3b> tie_points_colors;
@@ -440,22 +439,30 @@ public:
       const T *point_global, // 3D точка: [3]  = {x, y, z}
       T *residuals) const {  // невязка:  [2]  = {dx, dy}
     T point[3];
-    const T* t = camera_extrinsics;
+    // translation[3] - сдвиг в локальную систему координат камеры
+    const T *translation = camera_extrinsics;
     for (size_t i = 0; i < 3; ++i) {
-      point[i] = point_global[i] - t[i];
+      point[i] = point_global[i] - translation[i];
     }
 
-    T point_rotation[3];
-    const T* rotation = camera_extrinsics + 3;
-    ceres::AngleAxisRotatePoint(rotation, point, point_rotation);
+    // rotation[3] - angle-axis rotation, поворачиваем точку point->p (чтобы
+    // перейти в локальную систему координат камеры) подробнее см.
+    // https://en.wikipedia.org/wiki/Axis%E2%80%93angle_representation (P.S. у
+    // камеры всмысле вращения три степени свободы)
+    const T *rotation = camera_extrinsics + 3;
+    T point_rotated[3];
+    ceres::AngleAxisRotatePoint(rotation, point, point_rotated);
+
     T k1 = camera_intrinsics[0];
     T k2 = camera_intrinsics[1];
-    T f  = camera_intrinsics[2];
+    T f = camera_intrinsics[2];
     T cx = camera_intrinsics[3];
     T cy = camera_intrinsics[4];
-    T x = f * point_rotation[0] / point_rotation[2];
-    T y = f * point_rotation[1] / point_rotation[2];
 
+    // Проецируем точку на фокальную плоскость матрицы (т.е. плоскость
+    // Z=фокальная длина), тем самым переводя в пиксели
+    T x = f * point_rotated[0] / point_rotated[2];
+    T y = f * point_rotated[1] / point_rotated[2];
 
 #if ENABLE_INSTRINSICS_K1_K2
     // k1, k2 - коэффициенты радиального искажения (radial distortion)
@@ -464,8 +471,16 @@ public:
     x *= radial_corr;
     y *= radial_corr;
 #endif
+
+    // Из координат когда точка (0, 0) - центр оптической оси
+    // Переходим в координаты когда точка (0, 0) - левый верхний угол картинки
+    // cx, cy - координаты центра оптической оси (обычно это центр картинки, но
+    // часто он чуть смещен)
     x += cx;
     y += cy;
+
+    // Теперь по спроецированным координатам не забудьте посчитать невязку
+    // репроекции
     residuals[0] = x - observed_x;
     residuals[1] = y - observed_y;
     return true;
@@ -486,7 +501,7 @@ void printCamera(double *camera_intrinsics) {
 
 void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
            std::vector<std::vector<cv::KeyPoint>> &keypoints,
-           std::vector<matrix34d> &cameras, int32_t ncameras,
+           std::vector<matrix34d> &cameras, int ncameras,
            phg::Calibration &calib, bool verbose) {
   // Формулируем задачу
   ceres::Problem problem;
@@ -496,15 +511,17 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
   ASSERT_NEAR(calib.cy_, 0.0, 0.3 * calib.height());
 
   // внутренние калибровочные параметры камеры: [5] = {k1, k2, f, cx, cy}
-  double camera_intrinsics[5] = {calib.k1_, calib.k2_, calib.f_, calib.cx_ + 0.5 * calib.width(), calib.cy_ + 0.5 * calib.height()};
+  double camera_intrinsics[5] = {calib.k1_, calib.k2_, calib.f_,
+                                 calib.cx_ + calib.width() * 0.5,
+                                 calib.cy_ + calib.height() * 0.5};
   std::cout << "Before BA ";
   printCamera(camera_intrinsics);
 
-  constexpr int32_t CAMERA_EXTRINSICS_NPARAMS = 6;
+  const int CAMERA_EXTRINSICS_NPARAMS = 6;
 
   // внешние калибровочные параметры камеры для каждого кадра: [6] =
   // {translation[3], rotation[3]}
-  std::vector cameras_extrinsics(CAMERA_EXTRINSICS_NPARAMS * ncameras,
+  std::vector<double> cameras_extrinsics(CAMERA_EXTRINSICS_NPARAMS * ncameras,
                                          0.0);
   for (size_t camera_id = 0; camera_id < ncameras; ++camera_id) {
     matrix3d R;
@@ -527,7 +544,7 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
     matrix3d Rt = R.t();
     ceres::RotationMatrixToAngleAxis(&(Rt(0, 0)), rotation_angle_axis);
 
-    for (int32_t d = 0; d < 3; ++d) {
+    for (int d = 0; d < 3; ++d) {
       translation[d] = O[d];
     }
   }
@@ -535,15 +552,12 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
   // остались только блоки параметров для 3D точек, но их аллоцировать не
   // обязательно, т.к. мы можем их оптимизировать напрямую в tie_points массиве
 
-  // TODO по хорошему, должна быть среднеквадратичным отклонением от наблюдаемой
-  // ошибки а не константой. Можно оставить так для простоты, можно поправить и
-  // сделать правильно
-  constexpr double sigma = 2.0; // измеряется в пикселях
+  const double sigma = 2.0; // измеряется в пикселях
 
   double inliers_mse = 0.0;
   size_t inliers = 0;
   size_t nprojections = 0;
-  std::vector cameras_inliers_mse(ncameras, 0.0);
+  std::vector<double> cameras_inliers_mse(ncameras, 0.0);
   std::vector<size_t> cameras_inliers(ncameras, 0);
   std::vector<size_t> cameras_nprojections(ncameras, 0);
 
@@ -555,8 +569,8 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
   for (size_t i = 0; i < tie_points.size(); ++i) {
     const Track &track = tracks[i];
     for (size_t ci = 0; ci < track.img_kpt_pairs.size(); ++ci) {
-      int32_t camera_id = track.img_kpt_pairs[ci].first;
-      int32_t keypoint_id = track.img_kpt_pairs[ci].second;
+      int camera_id = track.img_kpt_pairs[ci].first;
+      int keypoint_id = track.img_kpt_pairs[ci].second;
       cv::Vec2f px = keypoints[camera_id][keypoint_id].pt;
 
       ceres::CostFunction *keypoint_reprojection_residual =
@@ -576,7 +590,7 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
 
       // блоки параметров для 3D точек аллоцировать не обязательно, т.к. мы
       // можем их оптимизировать напрямую в tie_points массиве
-      double *point3d_params = &tie_points[i][0];
+      double *point3d_params = &(tie_points[i][0]);
 
       {
         const double *params[3];
@@ -592,7 +606,6 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
           cameras_inliers_mse[camera_id] += error2;
           ++cameras_inliers[camera_id];
         }
-
         ++nprojections;
         ++cameras_nprojections[camera_id];
       }
@@ -609,7 +622,6 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
       }
     }
   }
-
   std::cout << "Before BA projections: " << to_percent(inliers, nprojections)
             << "% inliers with MSE=" << (inliers_mse / inliers) << std::endl;
   for (size_t camera_id = 0; camera_id < ncameras; ++camera_id) {
@@ -623,11 +635,7 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
   }
 
   if (ncameras < INTRINSICS_CALIBRATION_MIN_IMGS) {
-    // Полностью фиксируем внутренние калибровочные параметры камеры,
-    // т.к. пока что наблюдений мало, и мы можем сойтись к какому-то
-    // неправильному решению которое потом не выйдет спасти иначе говоря пока
-    // наблюдений мало - лучше уменьшить число степеней свободы, чтобы не
-    // испортить решение фатально
+    // Полностью фиксируем внутренние калибровочные параметры камеры, т.к.
     problem.SetParameterBlockConstant(camera_intrinsics);
   } else {
     if (ncameras < INTRINSIC_K1_K2_MIN_IMGS) {
@@ -636,17 +644,21 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
     }
   }
 
+  // Если всегда фиксировать первые две камеры, количество инлайеров на них
+  // заметно меньше чем на остальных (в частности тест про 25% перестает
+  // проходить) Если же на разных шагах фиксировать разные пары камер,
+  // последовательные облака точек не совпадают но зато ошибка распределена
+  // более равномерно
   {
-    // Полностью фиксируем положение первой камеры (чтобы не уползло облако
+    // Полностью фиксируем положение одной из камер (чтобы не уползло облако
     // точек)
     size_t camera_id = 0;
     double *camera0_extrinsics =
         cameras_extrinsics.data() + CAMERA_EXTRINSICS_NPARAMS * camera_id;
     problem.SetParameterBlockConstant(camera0_extrinsics);
   }
-
   {
-    // Фиксируем координаты второй камеры, т.е. translation[3] (чтобы
+    // Фиксируем координаты следующей камеры, т.е. translation[3] (чтобы
     // фиксировать масштаб)
     size_t camera_id = 1;
     double *camera1_extrinsics =
@@ -654,7 +666,7 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
     problem.SetParameterization(
         camera1_extrinsics, new ceres::SubsetParameterization(6, {0, 1, 2}));
   }
-  // http://ceres-solver.org/nnls_solving.html
+
   if (ENABLE_BA) {
     ceres::Solver::Options options;
     options.linear_solver_type = ceres::DENSE_SCHUR;
@@ -662,9 +674,7 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
     ceres::Solver::Summary summary;
     Solve(options, &problem, &summary);
 
-    if (verbose) {
-      std::cout << summary.BriefReport() << std::endl;
-    }
+    std::cout << summary.BriefReport() << std::endl;
   }
 
   std::cout << "After BA ";
@@ -700,7 +710,7 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
     // транспонировать:
     R = Rt.t();
 
-    for (int32_t d = 0; d < 3; ++d) {
+    for (int d = 0; d < 3; ++d) {
       O[d] = translation[d];
     }
 
@@ -726,7 +736,7 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
     vector3d track_point = tie_points[i];
 
     for (size_t ci = 0; ci < track.img_kpt_pairs.size(); ++ci) {
-      int32_t camera_id = track.img_kpt_pairs[ci].first;
+      int camera_id = track.img_kpt_pairs[ci].first;
 
       ceres::CostFunction *keypoint_reprojection_residual =
           reprojection_residuals[next_loss_k++];
@@ -751,11 +761,11 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
       }
 
       if (ENABLE_OUTLIERS_FILTRATION_COLINEAR && ENABLE_BA && ci > 0) {
-        vector3d f_cam;
-        phg::decomposeUndistortedPMatrix(R, f_cam, cameras[0]);
-        vector3d ray_f = cv::normalize(track_point - f_cam);
-        vector3d ray_tmp = cv::normalize(track_point - camera_origin);
-        if (ENABLE_OUTLIERS_FILTRATION_NEGATIVE_Z && ENABLE_BA) {
+        vector3d first_camera_origin;
+        phg::decomposeUndistortedPMatrix(R, first_camera_origin, cameras[0]);
+        vector3d ray_first = cv::normalize(track_point - first_camera_origin);
+        vector3d ray_current = cv::normalize(track_point - camera_origin);
+        if (ray_first.dot(ray_current) > 0.999 /*cos(2.5)*/) {
           should_be_disabled = true;
         }
       }
@@ -777,7 +787,6 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
           if (ENABLE_OUTLIERS_FILTRATION_3_SIGMA && ENABLE_BA)
             should_be_disabled = true;
         }
-
         ++nprojections;
         ++cameras_nprojections[camera_id];
       }
@@ -790,7 +799,6 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
       ++n_old_outliers;
     }
   }
-
   std::cout << "After BA tie poits: "
             << to_percent(n_old_outliers, tie_points.size()) << "% old + "
             << to_percent(n_new_outliers, tie_points.size()) << "% new = "
@@ -806,7 +814,7 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
               << " projections: " << to_percent(ninls, nproj) << "% inliers "
               << "(" << ninls << "/" << nproj << ") with MSE=" << mse
               << std::endl;
-    ASSERT_GT(ninls, 0.15 * nproj);
+    ASSERT_GT(ninls, 0.25 * nproj);
   }
 
   for (auto ptr : reprojection_residuals_for_deletion) {
@@ -816,10 +824,10 @@ void runBA(std::vector<vector3d> &tie_points, std::vector<Track> &tracks,
 }
 
 void generateTiePointsCloud(
-    const std::vector<vector3d> &tie_points, const std::vector<Track> &tracks,
-    const std::vector<std::vector<cv::KeyPoint>> &keypoints,
-    const std::vector<cv::Mat> &imgs, const std::vector<char> &aligned,
-    const std::vector<matrix34d> &cameras, int32_t ncameras,
+    const std::vector<vector3d> tie_points, const std::vector<Track> tracks,
+    const std::vector<std::vector<cv::KeyPoint>> keypoints,
+    const std::vector<cv::Mat> imgs, const std::vector<char> aligned,
+    const std::vector<matrix34d> cameras, int ncameras,
     std::vector<vector3d> &tie_points_and_cameras,
     std::vector<cv::Vec3b> &tie_points_colors) {
   rassert(tie_points.size() == tracks.size(), 24152151251241);
@@ -827,19 +835,19 @@ void generateTiePointsCloud(
   tie_points_and_cameras.clear();
   tie_points_colors.clear();
 
-  for (int32_t i = 0; i < static_cast<int32_t>(tie_points.size()); ++i) {
+  for (int i = 0; i < (int)tie_points.size(); ++i) {
     const Track &track = tracks[i];
     if (track.disabled)
       continue;
 
-    int32_t img = track.img_kpt_pairs.front().first;
-    int32_t kpt = track.img_kpt_pairs.front().second;
+    int img = track.img_kpt_pairs.front().first;
+    int kpt = track.img_kpt_pairs.front().second;
     cv::Vec2f px = keypoints[img][kpt].pt;
     tie_points_and_cameras.push_back(tie_points[i]);
     tie_points_colors.push_back(imgs[img].at<cv::Vec3b>(px[1], px[0]));
   }
 
-  for (int32_t i_camera = 0; i_camera < ncameras; ++i_camera) {
+  for (int i_camera = 0; i_camera < ncameras; ++i_camera) {
     if (!aligned[i_camera]) {
       throw std::runtime_error("camera " + std::to_string(i_camera) +
                                " is not aligned");
