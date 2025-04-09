@@ -411,9 +411,7 @@ TEST(SFM, ReconstructNViews) {
                           tie_points_colors);
 
     // Запуск Bundle Adjustment
-#if ENABLE_BA
     runBA(tie_points, tracks, keypoints, cameras, ncameras, calib);
-#endif
 
     generateTiePointsCloud(tie_points, tracks, keypoints, imgs, aligned,
                            cameras, ncameras, tie_points_and_cameras,
