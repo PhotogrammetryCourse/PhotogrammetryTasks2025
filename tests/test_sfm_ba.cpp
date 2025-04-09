@@ -319,10 +319,7 @@ TEST(SFM, ReconstructNViews) {
                               "/point_cloud_" + to_string(ncameras) +
                               "_cameras.ply",
                           tie_points_colors);
-
-#if ENABLE_BA
     runBA(tie_points, tracks, keypoints, cameras, ncameras, calib);
-#endif
     generateTiePointsCloud(tie_points, tracks, keypoints, imgs, aligned,
                            cameras, ncameras, tie_points_and_cameras,
                            tie_points_colors);
@@ -358,7 +355,7 @@ TEST(SFM, ReconstructNViews) {
     std::cout << "Append camera #" << i_camera << " (" << imgs_labels[i_camera]
               << ") to alignment via " << Xs.size() << " common points"
               << std::endl;
-    rassert(Xs.size() > 0, 2318254129859128305);
+    rassert(!Xs.empty(), 2318254129859128305);
     matrix34d P = phg::findCameraMatrix(calib0, Xs, xs, false);
 
     cameras[i_camera] = P;
