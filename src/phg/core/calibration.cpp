@@ -4,17 +4,17 @@
 
 phg::Calibration::Calibration(int width, int height)
     : width_(width), height_(height), cx_(0), cy_(0), k1_(0), k2_(0) {
-  // 50mm guess
+    // 50mm guess
 
-  constexpr double diag_35mm = 36.0 * 36.0 + 24.0 * 24.0;
-  const double diag_pix =
-      static_cast<double>(width) * static_cast<double>(width) + static_cast<double>(height) * static_cast<double>(height);
+    constexpr double diag_35mm = 36.0 * 36.0 + 24.0 * 24.0;
+    const double diag_pix =
+        static_cast<double>(width) * static_cast<double>(width) + static_cast<double>(height) * static_cast<double>(height);
 
-  f_ = 50.0 * std::sqrt(diag_pix / diag_35mm);
+    f_ = 50.0 * std::sqrt(diag_pix / diag_35mm);
 }
 
 cv::Matx33d phg::Calibration::K() const {
-  return {f_, 0., cx_ + width_ * 0.5, 0., f_, cy_ + height_ * 0.5, 0., 0., 1.};
+    return {f_, 0., cx_ + width_ * 0.5, 0., f_, cy_ + height_ * 0.5, 0., 0., 1.};
 }
 
 int phg::Calibration::width() const { return width_; }
@@ -22,36 +22,36 @@ int phg::Calibration::width() const { return width_; }
 int phg::Calibration::height() const { return height_; }
 
 cv::Vec3d phg::Calibration::project(const cv::Vec3d &point) const {
-  double x = point[0] / point[2];
-  double y = point[1] / point[2];
+    double x = point[0] / point[2];
+    double y = point[1] / point[2];
 
-  const double rad = x * x + y * y;
-  const double rad_cor = 1 + k1_ * rad * k2_ * rad * rad;
+    const double rad = x * x + y * y;
+    const double rad_cor = 1 + k1_ * rad * k2_ * rad * rad;
 
-  x *= f_ * rad_cor;
-  y *= f_ * rad_cor;
+    x *= f_ * rad_cor;
+    y *= f_ * rad_cor;
 
-  x += cx_ + width_ * 0.5;
-  y += cy_ + height_ * 0.5;
+    x += cx_ + width_ * 0.5;
+    y += cy_ + height_ * 0.5;
 
-  return {x, y, 1.0};
+    return {x, y, 1.0};
 }
 
 cv::Vec3d phg::Calibration::unproject(const cv::Vec2d &pixel) const {
-  double x = pixel[0] - cx_ - width_ * 0.5;
-  double y = pixel[1] - cy_ - height_ * 0.5;
+    double x = pixel[0] - cx_ - width_ * 0.5;
+    double y = pixel[1] - cy_ - height_ * 0.5;
 
-  const double rad = x * x + y * y;
-  const double rad_cor = 1 + k1_ * rad + k2_ * rad * rad;
-  x /= rad_cor;
-  y /= rad_cor;
+    const double rad = x * x + y * y;
+    const double rad_cor = 1 + k1_ * rad + k2_ * rad * rad;
+    x /= rad_cor;
+    y /= rad_cor;
 
-  x /= f_;
-  y /= f_;
+    x /= f_;
+    y /= f_;
 
 
-  // почему строго говоря это - не симметричная формула формуле из project? (но
-  // лишь приближение)
+    // почему строго говоря это - не симметричная формула формуле из project? (но
+    // лишь приближение)
 
-  return {x, y, 1.0};
+    return {x, y, 1.0};
 }

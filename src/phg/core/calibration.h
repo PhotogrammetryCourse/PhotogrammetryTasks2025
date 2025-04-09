@@ -4,25 +4,25 @@
 
 namespace phg {
 
-struct Calibration {
+    struct Calibration {
 
-  Calibration(int width, int height);
+        Calibration(int width, int height);
 
-  cv::Vec3d project(const cv::Vec3d &point) const;
-  cv::Vec3d unproject(const cv::Vec2d &pixel) const;
+        cv::Vec3d project(const cv::Vec3d &point) const;
+        cv::Vec3d unproject(const cv::Vec2d &pixel) const;
 
-  cv::Matx33d K() const;
+        cv::Matx33d K() const;
 
-  int width() const;
-  int height() const;
+        int width() const;
+        int height() const;
 
-  double f_;
-  double cx_;
-  double cy_;
-  double k1_;
-  double k2_;
-  int width_;
-  int height_;
-};
+        double f_;
+        double cx_;
+        double cy_;
+        double k1_;
+        double k2_;
+        int width_;
+        int height_;
+    };
 
-} // namespace phg
+}
