@@ -22,14 +22,14 @@ int phg::Calibration::width() const { return width_; }
 int phg::Calibration::height() const { return height_; }
 
 cv::Vec3d phg::Calibration::project(const cv::Vec3d &point) const {
-    double x = point[0] / point[2];
-    double y = point[1] / point[2];
+    double x = f_ * point[0] / point[2];
+    double y = f_ * point[1] / point[2];
 
     const double rad = x * x + y * y;
     const double rad_cor = 1 + k1_ * rad * k2_ * rad * rad;
 
-    x *= f_ * rad_cor;
-    y *= f_ * rad_cor;
+    x *= rad_cor;
+    y *= rad_cor;
 
     x += cx_ + width_ * 0.5;
     y += cy_ + height_ * 0.5;
