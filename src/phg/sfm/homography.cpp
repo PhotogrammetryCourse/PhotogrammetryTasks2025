@@ -172,7 +172,7 @@ namespace {
        const int n_matches = points_lhs.size();
 
        // https://en.wikipedia.org/wiki/Random_sample_consensus#Parameters
-       const int n_trials = 10;
+       const int n_trials = 100;
        const int n_samples = 4;
        uint64_t seed = 1;
        const double reprojection_error_threshold_px = 2;
@@ -183,7 +183,11 @@ namespace {
        #pragma omp parallel for
        for (int i_trial = 0; i_trial < n_trials; ++i_trial) {
            std::vector<int> sample;
-           randomSample(sample, n_matches, n_samples, &seed);
+           
+           #pragma omp critical
+           {
+               randomSample(sample, n_matches, n_samples, &seed);
+           }
 
            cv::Mat H = estimateHomography4Points(points_lhs[sample[0]], points_lhs[sample[1]], points_lhs[sample[2]], points_lhs[sample[3]],
                                                  points_rhs[sample[0]], points_rhs[sample[1]], points_rhs[sample[2]], points_rhs[sample[3]]);
