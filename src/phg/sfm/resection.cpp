@@ -89,7 +89,7 @@ namespace {
 
         // https://en.wikipedia.org/wiki/Random_sample_consensus#Parameters
         // будет отличаться от случая с гомографией
-        constexpr int n_trials = 2000;
+        constexpr int n_trials = 5000;
         constexpr int n_samples = 7;
         constexpr double threshold_px = 3;
 
