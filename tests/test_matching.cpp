@@ -20,7 +20,11 @@
 
 // TODO enable both toggles for testing custom detector & matcher
 #define ENABLE_MY_DESCRIPTOR 0
-#define ENABLE_MY_MATCHING 0
+#define ENABLE_MY_MATCHING 1
+#define ENABLE_MY_FILTER 1
+#define ENABLE_MY_HOMOGRAPHY 1
+#define ENABLE_MY_TRANSFORM 1
+#define ENABLE_MY_STICHING 1
 #define ENABLE_GPU_BRUTEFORCE_MATCHER 0
 
 #if ENABLE_MY_MATCHING
@@ -76,7 +80,7 @@ namespace {
             good_matches[i] = knn_matches[i][0];
         }
 
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_FILTER
         phg::DescriptorMatcher::filterMatchesRatioTest(knn_matches, good_matches);
         {
             std::vector<DMatch> tmp;
@@ -97,7 +101,7 @@ namespace {
             points2.push_back(keypoints2[match.trainIdx].pt);
         }
 
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_HOMOGRAPHY
         cv::Mat H = phg::findHomography(points1, points2);
 #else
         cv::Mat H = phg::findHomographyCV(points1, points2);
@@ -128,7 +132,7 @@ namespace {
             good_matches[i] = knn_matches[i][0];
         }
 
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_FILTER
         phg::DescriptorMatcher::filterMatchesRatioTest(knn_matches, good_matches);
         {
             std::vector<DMatch> tmp;
@@ -148,7 +152,7 @@ namespace {
             points1.push_back(keypoints1[match.queryIdx].pt);
             points2.push_back(keypoints2[match.trainIdx].pt);
         }
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_HOMOGRAPHY
         cv::Mat H = phg::findHomography(points1, points2);
 #else
         cv::Mat H = phg::findHomographyCV(points1, points2);
@@ -160,7 +164,7 @@ namespace {
 
         keypoints_rmse = 0;
         for (int i = 0; i < (int) good_matches.size(); ++i) {
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_TRANSFORM
             cv::Point2f pt = phg::transformPoint(points1[i], H);
 #else
             cv::Point2f pt = phg::transformPointCV(points1[i], H);
@@ -176,7 +180,7 @@ namespace {
         for (int y = 0; y < img1.rows; ++y) {
             for (int x = 0; x < img1.cols; ++x) {
                 cv::Vec3b col1 = img1.at<cv::Vec3b>(y, x);
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_TRANSFORM
                 cv::Point2f pt = phg::transformPoint(cv::Point2f(x, y), H);
 #else
                 cv::Point2f pt = phg::transformPointCV(cv::Point2f(x, y), H);
@@ -374,7 +378,7 @@ namespace {
         }
         drawMatches(img1, img2, keypoints1, keypoints2, good_matches_nn, "data/debug/test_matching/" + getTestSuiteName() + "_" + getTestName() + "_" + "00_matches_nn.png");
 
-        #if ENABLE_MY_MATCHING
+        #if ENABLE_MY_FILTER
         std::cout << "filtering matches by ratio test..." << std::endl;
         std::vector<DMatch> good_matches_ratio;
         phg::DescriptorMatcher::filterMatchesRatioTest(knn_matches_flann, good_matches_ratio);
@@ -404,7 +408,7 @@ namespace {
                 points2.push_back(keypoints2[match.trainIdx].pt);
             }
 
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_HOMOGRAPHY
             H = phg::findHomography(points1, points2);
 #else
             H = phg::findHomographyCV(points1, points2);
@@ -418,7 +422,7 @@ namespace {
 
         std::cout << "evaluating homography..." << std::endl;
 
-        #if ENABLE_MY_MATCHING
+        #if ENABLE_MY_FILTER
         const int ntest = 4;
         std::vector<cv::DMatch>* arrs[ntest] = {&good_matches_nn, &good_matches_ratio, &good_matches_clusters_only, &good_matches_clusters_and_ratio};
         double* ptrs[ntest] = {&good_nn, &good_ratio, &good_clusters, &good_ratio_and_clusters};
@@ -445,7 +449,7 @@ namespace {
 
             (*ptrs[i_test]) = 0;
             for (int i = 0; i < (int) arr.size(); ++i) {
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_TRANSFORM
                 cv::Point2f pt = phg::transformPoint(points1[i], H);
 #else
                 cv::Point2f pt = phg::transformPointCV(points1[i], H);
@@ -556,14 +560,14 @@ TEST (MATCHING, SimpleMatching) {
     EXPECT_LT(time_bruteforce_gpu, time_bruteforce);
 #endif
 
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_FILTER
     EXPECT_LT(good_nn, good_ratio);
     EXPECT_LT(good_nn, good_clusters);
 #endif
     EXPECT_LT(good_nn, good_ratio_and_clusters);
 
     EXPECT_GT(good_nn, 0.2);
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_FILTER
     EXPECT_GT(good_ratio, 0.9);
     EXPECT_GT(good_clusters, 0.9);
 #endif
@@ -615,12 +619,12 @@ namespace {
 
         EXPECT_LT(time_my, 1.5 * time_cv);
 
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_FILTER
         EXPECT_LT(good_nn, good_ratio);
 #endif
         EXPECT_LT(good_nn, good_ratio_and_clusters);
 
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_FILTER
         EXPECT_GT(good_ratio, 0.7);
 #endif
         EXPECT_GT(good_ratio_and_clusters, 0.7);
@@ -672,7 +676,7 @@ TEST (MATCHING, Rotate90) {
 
 TEST (MATCHING, Scale50) {
     // seems to be some issue with gms matcher and high downscale
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_FILTER
     double angleDegreesClockwise = 0;
     double scale = 0.5;
 
@@ -744,7 +748,7 @@ TEST (MATCHING, Rotate30Scale75) {
 }
 
 TEST (STITCHING, SimplePanorama) {
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_STICHING
     cv::Mat img1 = cv::imread("data/src/test_matching/hiking_left.JPG");
     cv::Mat img2 = cv::imread("data/src/test_matching/hiking_right.JPG");
 
@@ -801,7 +805,7 @@ namespace {
 }
 
 TEST (STITCHING, Orthophoto) {
-#if ENABLE_MY_MATCHING
+#if ENABLE_MY_STICHING
     cv::Mat img1 = cv::imread("data/src/test_matching/ortho/IMG_160729_071349_0000_RGB.JPG");
     cv::Mat img2 = cv::imread("data/src/test_matching/ortho/IMG_160729_071351_0001_RGB.JPG");
     cv::Mat img3 = cv::imread("data/src/test_matching/ortho/IMG_160729_071353_0002_RGB.JPG");
