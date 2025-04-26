@@ -117,8 +117,6 @@ void evaluateDetection(const cv::Mat &M, double minRecall, cv::Mat img0=cv::Mat(
                 detector->compute(img0, kps0, desc0);
                 detector->compute(img1, kps1, desc1);
             } else if (method == 2) {
-                // TODO remove 'return' and uncomment
-                // return;
                 method_name = "SIFT_MY";
                 log_prefix = "[SIFT_MY] ";
                 phg::SIFT mySIFT;
@@ -225,6 +223,10 @@ void evaluateDetection(const cv::Mat &M, double minRecall, cv::Mat img0=cv::Mat(
             if (angle_diff_sum != 0.0) {
                 std::cout << log_prefix << "average angle difference between matched points: " << (angle_diff_sum / n_matched) << " degrees" << std::endl;
                 // TODO почему SIFT менее точно угадывает средний угол отклонения? изменяется ли ситуация если выкрутить параметр ORIENTATION_VOTES_PEAK_RATIO=0.999? почему?
+                // 1) SIFT менее точно угадывает средний угол отклонения потому что мы делим диапазон на 36 корзин, из за чего будет присутствовать округление до +- 5 градусов.
+                // Это уменьшает точность
+                // изменяется ли ситуация если выкрутить параметр ORIENTATION_VOTES_PEAK_RATIO=0.999?
+                // На точность это сильно не повляет. Уменьшится кол-во дополнительных ключевых точек до 0 (останется только один пик)
             }
             if (desc_dist_sum != 0.0 && desc_rand_dist_sum != 0.0) {
                 std::cout << log_prefix << "average descriptor distance between matched points: " << (desc_dist_sum / n_matched) << " (random distance: " << (desc_rand_dist_sum / n_matched) << ") => differentiability=" << (desc_dist_sum / desc_rand_dist_sum) << std::endl;
@@ -388,7 +390,7 @@ TEST (SIFT, Scale175) {
     double angleDegreesClockwise = 0;
     double scale = 1.75;
     double minRecall = 0.75;
-    evaluateDetection(cv::getRotationMatrix2D(cv::Point(200, 256), -angleDegreesClockwise, scale), 0.3);
+    evaluateDetection(cv::getRotationMatrix2D(cv::Point(200, 256), -angleDegreesClockwise, scale), minRecall);
 }
 
 TEST (SIFT, Scale200) {
