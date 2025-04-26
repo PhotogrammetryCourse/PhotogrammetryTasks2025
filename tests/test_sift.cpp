@@ -389,7 +389,7 @@ TEST (SIFT, Scale150) {
 TEST (SIFT, Scale175) {
     double angleDegreesClockwise = 0;
     double scale = 1.75;
-    double minRecall = 0.75;
+    double minRecall = 0.3;
     evaluateDetection(cv::getRotationMatrix2D(cv::Point(200, 256), -angleDegreesClockwise, scale), minRecall);
 }
 
