@@ -38,9 +38,9 @@ void drawKeyPoints(cv::Mat &img, const std::vector<cv::KeyPoint> &kps, const std
         }
         int radius = std::max(2, (int) (kps[i].size / 5.0f));
         float angle = kps[i].angle;
-        cv::circle(img, kps[i].pt, radius, color, thickness);
+        circle(img, kps[i].pt, radius, color, thickness);
         if (angle != -1.0) {
-            cv::line(img, kps[i].pt, cv::Point((int) std::round(kps[i].pt.x + radius*sin(angle/M_PI)), (int) std::round(kps[i].pt.y + radius*cos(angle/M_PI))), color);
+            line(img, kps[i].pt, cv::Point((int) std::round(kps[i].pt.x + radius*sin(angle/M_PI)), (int) std::round(kps[i].pt.y + radius*cos(angle/M_PI))), color);
         }
     }
 }
@@ -62,9 +62,8 @@ double diffAngles(double angle0, double angle1) {
         }
         rassert(diff >= -180 && diff <= 180, 233536136131);
         return diff;
-    } else {
-        return 0.0;
     }
+    return 0.0;
 }
 
 // На вход передается матрица описывающая преобразование картинки (сдвиг, поворот, масштабирование или их комбинация), допустимый процент Recall, и опционально можно тестировать другую картинку
@@ -118,13 +117,11 @@ void evaluateDetection(const cv::Mat &M, double minRecall, cv::Mat img0=cv::Mat(
                 detector->compute(img0, kps0, desc0);
                 detector->compute(img1, kps1, desc1);
             } else if (method == 2) {
-                // TODO remove 'return' and uncomment
-                return;
-//                method_name = "SIFT_MY";
-//                log_prefix = "[SIFT_MY] ";
-//                phg::SIFT mySIFT;
-//                mySIFT.detectAndCompute(img0, kps0, desc0);
-//                mySIFT.detectAndCompute(img1, kps1, desc1);
+                method_name = "SIFT_MY";
+                log_prefix = "[SIFT_MY] ";
+                phg::SIFT mySIFT;
+                mySIFT.detectAndCompute(img0, kps0, desc0);
+                mySIFT.detectAndCompute(img1, kps1, desc1);
             } else {
                 rassert(false, 13532513412); // это не проверка как часть тестирования, это проверка что число итераций в цикле и if-else ветки все еще согласованы и не разошлись
             }
@@ -226,6 +223,10 @@ void evaluateDetection(const cv::Mat &M, double minRecall, cv::Mat img0=cv::Mat(
             if (angle_diff_sum != 0.0) {
                 std::cout << log_prefix << "average angle difference between matched points: " << (angle_diff_sum / n_matched) << " degrees" << std::endl;
                 // TODO почему SIFT менее точно угадывает средний угол отклонения? изменяется ли ситуация если выкрутить параметр ORIENTATION_VOTES_PEAK_RATIO=0.999? почему?
+                // 1) SIFT менее точно угадывает средний угол отклонения потому что мы делим диапазон на 36 корзин, из за чего будет присутствовать округление до +- 5 градусов.
+                // Это уменьшает точность
+                // изменяется ли ситуация если выкрутить параметр ORIENTATION_VOTES_PEAK_RATIO=0.999?
+                // На точность это сильно не повляет. Уменьшится кол-во дополнительных ключевых точек до 0 (останется только один пик)
             }
             if (desc_dist_sum != 0.0 && desc_rand_dist_sum != 0.0) {
                 std::cout << log_prefix << "average descriptor distance between matched points: " << (desc_dist_sum / n_matched) << " (random distance: " << (desc_rand_dist_sum / n_matched) << ") => differentiability=" << (desc_dist_sum / desc_rand_dist_sum) << std::endl;
@@ -388,8 +389,8 @@ TEST (SIFT, Scale150) {
 TEST (SIFT, Scale175) {
     double angleDegreesClockwise = 0;
     double scale = 1.75;
-    double minRecall = 0.75;
-    evaluateDetection(cv::getRotationMatrix2D(cv::Point(200, 256), -angleDegreesClockwise, scale), 0.3);
+    double minRecall = 0.3;
+    evaluateDetection(cv::getRotationMatrix2D(cv::Point(200, 256), -angleDegreesClockwise, scale), minRecall);
 }
 
 TEST (SIFT, Scale200) {
