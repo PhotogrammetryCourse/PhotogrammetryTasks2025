@@ -24,6 +24,10 @@
 #define INITIAL_IMG_SIGMA           0.75                 // предполагаемая степень размытия изначальной картинки
 #define INPUT_IMG_PRE_BLUR_SIGMA    1.0                  // сглаживание изначальной картинки
 #define BLUR_FIRST_OCTAVE_IMAGE     1                    // сглаживаем первое изображение октавы для парраллельности
+#define ENABLED_ANGLE_CORRECTION    1
+#define ENABLED_CONTRAST_FILTER     1
+#define HIST_SMOOTHING_ENABLED      0
+#define HIST_SMOOTHING_PARAM        0
    
 #define SUBPIXEL_FITTING_ENABLE      0    // такие тумблеры включающие/выключающие очередное улучшение алгоритма позволяют оценить какой вклад эта фича вносит в качество результата если в рамках уже готового алгоритма попробовать ее включить/выключить
 
@@ -150,13 +154,17 @@ void phg::SIFT::buildPyramids(const cv::Mat &imgOrg, std::vector<cv::Mat> &gauss
 
     // нам нужны padding-картинки по краям октавы чтобы извлекать экстремумы, но в статье предлагается не s+2 а s+3: [lowe04] We must produce s + 3 images in the stack of blurred images for each octave, so that final extrema detection covers a complete octave
     // TODO: почему OCTAVE_GAUSSIAN_IMAGES=(OCTAVE_NLAYERS + 3) а не например (OCTAVE_NLAYERS + 2)?
+    // Потому что из s+3 гауссиан получается ровно s+2 изображений DoG.
+    // При поиске экстремумов каждому DoG-слою нужны «соседи» выше и ниже для корректного сравнения.
 
     for (size_t octave = 0; octave < NOCTAVES; ++octave) {
         for (size_t layer = 0; layer < OCTAVE_DOG_IMAGES; ++layer) {
             double sigmaCur = INITIAL_IMG_SIGMA * pow(2.0, octave) * pow(k, layer);
             if (DEBUG_ENABLE) imwrite(DEBUG_PATH + "pyramidDoG/o" + to_string(octave) + "_l" + to_string(layer) + "_s" + to_string(sigmaCur) + ".png", DoGPyramid[octave * OCTAVE_DOG_IMAGES + layer]);
             // TODO: какие ожидания от картинок можно придумать? т.е. как дополнительно проверить что работает разумно?
-            // спойлер: подуймайте с чем должна визуально совпадать картинка из октавы DoG? может быть с какой-то из картинок с предыдущей октавы? с какой? как их визуально сверить ведь они разного размера? 
+            // спойлер: подуймайте с чем должна визуально совпадать картинка из октавы DoG? может быть с какой-то из картинок с предыдущей октавы? с какой? как их визуально сверить ведь они разного размера?
+            // Должны совпадать DoG из i октавы OCTAVE_NLAYERS слоя и i+1 октава 0 слоя (по модулю resize)
+            // Проверить можно визуально. Кроме того, можно проверить, что с каждым размытием и с каждой новой октавой градиент соседей уменьшается
         }
     }
 }
@@ -212,9 +220,11 @@ void phg::SIFT::findLocalExtremasAndDescribe(const std::vector<cv::Mat> &gaussia
                         for (int dz = -1; dz <= 1 && (is_min || is_max); ++dz) {
                         for (int dy = -1; dy <= 1 && (is_min || is_max); ++dy) {
                         for (int dx = -1; dx <= 1 && (is_min || is_max); ++dx) {
-                            float neighbor = DoGs[1+dz].at<float>(j+dy, i+dx);
-                            is_max = is_max && (dx == 0 && dy == 0 || center > neighbor);
-                            is_min = is_min && (dx == 0 && dy == 0 || center < neighbor);
+                            if (dx != 0 && dy != 0 && dx != 0) {
+                                float neighbor = DoGs[1+dz].at<float>(j+dy, i+dx);
+                                is_max = is_max &&  center > neighbor;
+                                is_min = is_min && center < neighbor;
+                            }
                         }
                         }
                         }
@@ -231,13 +241,17 @@ void phg::SIFT::findLocalExtremasAndDescribe(const std::vector<cv::Mat> &gaussia
                         // TODO сделать субпиксельное уточнение (хотя бы через параболу-фиттинг независимо по оси X и оси Y, но лучше через честный ряд Тейлора, матрицу Гессе и итеративное смещение если экстремум оказался в соседнем пикселе)
 #if SUBPIXEL_FITTING_ENABLE // такие тумблеры включающие/выключающие очередное улучшение алгоритма позволяют оценить какой вклад эта фича вносит в качество результата если в рамках уже готового алгоритма попробовать ее включить/выключить
                         {
-                            // TODO
+                            dx = parabolaFitting(DoGs[1].at<float>(y, x - 1), DoGs[1].at<float>(y, x), DoGs[1].at<float>(y, x + 1));
+                            dy = parabolaFitting(DoGs[1].at<float>(y - 1, x), DoGs[1].at<float>(y, x), DoGs[1].at<float>(y + 1, x));
                         }
 #endif
                         // TODO сделать фильтрацию слабых точек по слабому контрасту
                         float contrast = center + dvalue;
+#if ENABLED_CONTRAST_FILTER
                         if (contrast < contrast_threshold / OCTAVE_NLAYERS) // TODO почему порог контрастности должен уменьшаться при увеличении числа слоев в октаве?
                             continue;
+                        // При большем кол-ве слоев, q между слоями меньше => амплитуда DOG сигнала уменьшается => требуется понизить порог
+#endif
 
                         kp.pt = cv::Point2f((i + 0.5 + dx) * octave_downscale, (j + 0.5 + dy) * octave_downscale);
 
@@ -261,7 +275,13 @@ void phg::SIFT::findLocalExtremasAndDescribe(const std::vector<cv::Mat> &gaussia
                             float nextValue = votes[(bin + 1) % ORIENTATION_NHISTS];
                             if (value > prevValue && value > nextValue && votes[bin] > biggestVote * ORIENTATION_VOTES_PEAK_RATIO) {
                                 // TODO добавьте уточнение угла наклона - может помочь определенная выше функция parabolaFitting(float x0, float x1, float x2)
-                                kp.angle = (bin + 0.5) * (360.0 / ORIENTATION_NHISTS);
+
+                                float angleCorrection = 0;
+#if ENABLED_ANGLE_CORRECTION
+                                angleCorrection = parabolaFitting(prevValue, value, nextValue);
+#endif
+
+                                kp.angle = (bin + 0.5 + angleCorrection) * (360.0 / ORIENTATION_NHISTS);
                                 rassert(kp.angle >= 0.0 && kp.angle <= 360.0, 123512412412);
                                 
                                 std::vector<float> descriptor;
@@ -327,7 +347,13 @@ bool phg::SIFT::buildLocalOrientationHists(const cv::Mat &img, size_t i, size_t 
             size_t bin = static_cast<size_t>(orientation / (360.0f / ORIENTATION_NHISTS));
             rassert(bin < ORIENTATION_NHISTS, 361236315613);
             sum[bin] += magnitude;
-            // TODO может быть сгладить получившиеся гистограммы улучшит результат? 
+            // TODO может быть сгладить получившиеся гистограммы улучшит результат?
+            // Улучшение на уровне погрешности
+#if HIST_SMOOTHING_ENABLED
+            float prevBinSum = sum[(bin - 1 + ORIENTATION_NHISTS) % ORIENTATION_NHISTS];
+            float nextBinSum = sum[(bin + 1 + ORIENTATION_NHISTS) % ORIENTATION_NHISTS];
+            votes[bin] += (prevBinSum + nextBinSum) * HIST_SMOOTHING_FACTOR;
+#endif
         }
     }
 
@@ -376,8 +402,11 @@ bool phg::SIFT::buildDescriptor(const cv::Mat &img, float px, float py, double d
                             orientation = (orientation + 90.0);
                             if (orientation <  0.0)   orientation += 360.0;
                             if (orientation >= 360.0) orientation -= 360.0;
-
-                              // TODO за счет чего этот вклад будет сравниваться с этим же вкладом даже если эта картинка будет повернута? что нужно сделать с ориентацией каждого градиента из окрестности этой ключевой точки?
+                            // TODO за счет чего этот вклад будет сравниваться с этим же вкладом даже если эта картинка будет повернута? что нужно сделать с ориентацией каждого градиента из окрестности этой ключевой точки?
+                            // за счет чего этот вклад будет сравниваться с этим же вкладом даже если эта картинка будет повернута?
+                            // Сравнивается за счет того, что transform работает с вкладом, как выровненным по 0 углу
+                            // что нужно сделать с ориентацией каждого градиента из окрестности этой ключевой точки?
+                            // Нужно перевести все локальные направления градиентов в систему координат, выровненную по углу ключевой точки
 
                             rassert(orientation >= 0.0 && orientation < 360.0, 3515215125412);
                             static_assert(360 % DESCRIPTOR_NBINS == 0, "Inappropriate bins number!");
@@ -389,8 +418,6 @@ bool phg::SIFT::buildDescriptor(const cv::Mat &img, float px, float py, double d
                     }
                 }
             }
-
-            // TODO нормализовать наш вектор дескриптор (подсказка: посчитать его длину и поделить каждую компоненту на эту длину)
 
             float *votes = &(descriptor[(hstj * DESCRIPTOR_SIZE + hsti) * DESCRIPTOR_NBINS]); // нашли где будут лежать корзины нашей гистограммы
             for (int bin = 0; bin < DESCRIPTOR_NBINS; ++bin) {
