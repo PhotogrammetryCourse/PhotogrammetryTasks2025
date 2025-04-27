@@ -1,12 +1,12 @@
 В этом репозитории предложены задания курса по Фотограмметрии для студентов МКН/ИТМО/ВШЭ.
 
-[Остальные задания](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2024/).
+[Остальные задания](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2025/).
 
 # Задание 6. Build model. Triangulation Delaunay + Graph Min-Cut
 
-[![Build Status](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2024/actions/workflows/cmake.yml/badge.svg?branch=task06&event=push)](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2024/actions/workflows/cmake.yml)
+[![Build Status](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2025/actions/workflows/cmake.yml/badge.svg?branch=task06&event=push)](https://github.com/PhotogrammetryCourse/PhotogrammetryTasks2025/actions/workflows/cmake.yml)
 
-**Жесткий дедлайн**: вечер 12 мая
+**Жесткий дедлайн**: вечер 8 мая
 
 0. Скачать и распаковать в папки data/src/datasets/ карты глубины: [saharov32](https://disk.yandex.com/d/2fWAdzpM4ibYBg), [herzjesu25](https://disk.yandex.com/d/n3MyKUjvuVPF6Q)
 
@@ -77,7 +77,7 @@
 
 11. Отправить **Pull-request** с названием```Task06 <Имя> <Фамилия> <Аффиляция>```:
 
- - Скопируйте в описание [шаблон](https://raw.githubusercontent.com/PhotogrammetryCourse/PhotogrammetryTasks2024/task06/.github/pull_request_template.md)
+ - Скопируйте в описание [шаблон](https://raw.githubusercontent.com/PhotogrammetryCourse/PhotogrammetryTasks2025/task06/.github/pull_request_template.md)
  - Обязательно отправляйте PR из вашей ветки **task06** (вашего форка) в ветку **task06** (основного репозитория)
  - Перечислите свои мысли по вопросам поднятым в коде и просто появившиеся в процессе выполнения задания
  - Создайте PR
