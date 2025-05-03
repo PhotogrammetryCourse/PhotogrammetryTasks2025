@@ -1,11 +1,10 @@
 #include "bruteforce_matcher.h"
 
-#include <iostream>
 #include <libutils/rasserts.h>
 
+#include <iostream>
 
-void phg::BruteforceMatcher::train(const cv::Mat &train_desc)
-{
+void phg::BruteforceMatcher::train(const cv::Mat &train_desc) {
     if (train_desc.rows < 2) {
         throw std::runtime_error("BruteforceMatcher:: train : needed at least 2 train descriptors");
     }
@@ -15,8 +14,7 @@ void phg::BruteforceMatcher::train(const cv::Mat &train_desc)
 
 void phg::BruteforceMatcher::knnMatch(const cv::Mat &query_desc,
                                       std::vector<std::vector<cv::DMatch>> &matches,
-                                      int k) const
-{
+                                      int k) const {
     if (!train_desc_ptr) {
         throw std::runtime_error("BruteforceMatcher:: knnMatch : matcher is not trained");
     }
@@ -34,7 +32,7 @@ void phg::BruteforceMatcher::knnMatch(const cv::Mat &query_desc,
     const cv::Mat &train_desc = *train_desc_ptr;
     const int n_train_desc = train_desc.rows;
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for (int qi = 0; qi < ndesc; ++qi) {
         std::vector<cv::DMatch> &dst = matches[qi];
         dst.clear();
@@ -48,26 +46,19 @@ void phg::BruteforceMatcher::knnMatch(const cv::Mat &query_desc,
             match.trainIdx = ti;
             if (dst.empty()) {
                 dst.push_back(match);
-            }
-            else
-            if (dst.size() == 1) {
+            } else if (dst.size() == 1) {
                 dst.push_back(match);
                 if (dst[0].distance > dst[1].distance) {
                     std::swap(dst[0], dst[1]);
                 }
-            }
-            else
-            if (dst.size() == 2) {
+            } else if (dst.size() == 2) {
                 if (dst[0].distance > match.distance) {
                     dst[1] = dst[0];
                     dst[0] = match;
-                }
-                else
-                if (dst[1].distance > match.distance) {
+                } else if (dst[1].distance > match.distance) {
                     dst[1] = match;
                 }
-            }
-            else {
+            } else {
                 // если внутри openmp цикла бросить исключение, то программа упадет с сегфолтом
                 // нужно либо перехватывать исключения и обрабатывать их вне цикла, либо оповещать об ошибках иначе
                 std::cerr << "BruteforceMatcher:: knnMatch : invalid number of matches" << std::endl;

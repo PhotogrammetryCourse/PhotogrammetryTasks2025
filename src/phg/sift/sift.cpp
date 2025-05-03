@@ -454,7 +454,7 @@ bool phg::SIFT::buildDescriptor(const cv::Mat &img, float px, float py, double d
                 }
             }
             float norm2 = 0.f;
-            for (float value : sum) 
+            for (float value : sum)
                 norm2 += value * value;
             float norm = std::sqrt(norm2);
             for (float &value : sum)

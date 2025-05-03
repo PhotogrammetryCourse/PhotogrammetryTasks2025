@@ -1,20 +1,19 @@
 #include "bruteforce_matcher_gpu.h"
 
-#include <iostream>
-#include <libutils/misc.h>
-#include <libutils/timer.h>
-#include <libutils/rasserts.h>
-
 #include <libgpu/context.h>
 #include <libgpu/shared_device_buffer.h>
+#include <libutils/misc.h>
+#include <libutils/rasserts.h>
+#include <libutils/timer.h>
+
+#include <iostream>
 
 // Этот файл будет сгенерирован автоматически в момент сборки - см. convertIntoHeader в CMakeLists.txt
 #include "cl/bruteforce_matcher_cl.h"
 
 #define BF_MATCHER_GPU_VERBOSE 0
 
-void phg::BruteforceMatcherGPU::train(const cv::Mat &train_desc)
-{
+void phg::BruteforceMatcherGPU::train(const cv::Mat &train_desc) {
     if (train_desc.rows < 2) {
         throw std::runtime_error("BruteforceMatcher:: train : needed at least 2 train descriptors");
     }
@@ -24,8 +23,7 @@ void phg::BruteforceMatcherGPU::train(const cv::Mat &train_desc)
 
 void phg::BruteforceMatcherGPU::knnMatch(const cv::Mat &query_desc,
                                          std::vector<std::vector<cv::DMatch>> &matches,
-                                         int k) const
-{
+                                         int k) const {
     if (!train_desc_ptr) {
         throw std::runtime_error("BruteforceMatcher:: knnMatch : matcher is not trained");
     }
@@ -59,15 +57,15 @@ void phg::BruteforceMatcherGPU::knnMatch(const cv::Mat &query_desc,
     gpu::gpu_mem_32f res_matches_distance;
     gpu::gpu_mem_32u res_matches_train_idx, res_matches_query_idx;
 
-    train_data.resizeN(n_train_desc * ndim);  // массивы в видеопамяти с дескрипторами (выложенными подряд)
-    query_data.resizeN(ndesc * ndim);         // массивы в видеопамяти с дескрипторами (выложенными подряд)
-    res_matches_distance.resizeN(ndesc * 2);  // найденные расстояния лучших 2 сопоставлений
-    res_matches_train_idx.resizeN(ndesc * 2); // найденные индексы двух лучших сопоставленных пар (в списке train ключевых точек)
-    res_matches_query_idx.resizeN(ndesc * 2); // найденные индексы двух лучших сопоставленных пар (в списке query ключевых точек)
+    train_data.resizeN(n_train_desc * ndim);   // массивы в видеопамяти с дескрипторами (выложенными подряд)
+    query_data.resizeN(ndesc * ndim);          // массивы в видеопамяти с дескрипторами (выложенными подряд)
+    res_matches_distance.resizeN(ndesc * 2);   // найденные расстояния лучших 2 сопоставлений
+    res_matches_train_idx.resizeN(ndesc * 2);  // найденные индексы двух лучших сопоставленных пар (в списке train ключевых точек)
+    res_matches_query_idx.resizeN(ndesc * 2);  // найденные индексы двух лучших сопоставленных пар (в списке query ключевых точек)
     rassert(train_desc_ptr->isContinuous(), 352365262346252);
     rassert(query_desc.isContinuous(), 352365262346252);
-    train_data.write(train_desc_ptr->ptr(), train_data.size()); // прогрузили дескрипторы в видеопамять
-    query_data.write(query_desc.ptr(), query_data.size());      // прогрузили дескрипторы в видеопамять
+    train_data.write(train_desc_ptr->ptr(), train_data.size());  // прогрузили дескрипторы в видеопамять
+    query_data.write(query_desc.ptr(), query_data.size());       // прогрузили дескрипторы в видеопамять
 
     if (BF_MATCHER_GPU_VERBOSE) std::cout << "[BFMatcher] data allocated and loaded in " << t.elapsed() << " s" << std::endl;
 
@@ -80,8 +78,8 @@ void phg::BruteforceMatcherGPU::knnMatch(const cv::Mat &query_desc,
 
     t.restart();
     unsigned int work_group_size = 128;
-    rassert(work_group_size == ndim, 3541414124125125); // мы полагаемся на то что один поток рабочей группы будет грузить одно значение из дескриптора
-    unsigned int global_work_size = (ndesc + keypoints_per_wg - 1) / keypoints_per_wg; // каждая рабочая группа обрабатывает keypoints_per_wg=4 дескриптора из query (сопоставляет их со всеми train)
+    rassert(work_group_size == ndim, 3541414124125125);                                 // мы полагаемся на то что один поток рабочей группы будет грузить одно значение из дескриптора
+    unsigned int global_work_size = (ndesc + keypoints_per_wg - 1) / keypoints_per_wg;  // каждая рабочая группа обрабатывает keypoints_per_wg=4 дескриптора из query (сопоставляет их со всеми train)
     gpu::WorkSize ws(work_group_size, 1,
                      work_group_size, global_work_size);
     bruteforce_matcher.exec(ws,
