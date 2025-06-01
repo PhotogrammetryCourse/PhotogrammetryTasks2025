@@ -30,15 +30,13 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.*/
 
-
-
 // source: https://github.com/JiawangBian/GMS-Feature-Matcher
 
 #pragma once
+#include <ctime>
+#include <iostream>
 #include <opencv2/opencv.hpp>
 #include <vector>
-#include <iostream>
-#include <ctime>
 using namespace std;
 using namespace cv;
 
@@ -46,49 +44,45 @@ using namespace cv;
 
 // 8 possible rotation and each one is 3 X 3
 const int mRotationPatterns[8][9] = {
-        1,2,3,
-        4,5,6,
-        7,8,9,
+    1, 2, 3,
+    4, 5, 6,
+    7, 8, 9,
 
-        4,1,2,
-        7,5,3,
-        8,9,6,
+    4, 1, 2,
+    7, 5, 3,
+    8, 9, 6,
 
-        7,4,1,
-        8,5,2,
-        9,6,3,
+    7, 4, 1,
+    8, 5, 2,
+    9, 6, 3,
 
-        8,7,4,
-        9,5,1,
-        6,3,2,
+    8, 7, 4,
+    9, 5, 1,
+    6, 3, 2,
 
-        9,8,7,
-        6,5,4,
-        3,2,1,
+    9, 8, 7,
+    6, 5, 4,
+    3, 2, 1,
 
-        6,9,8,
-        3,5,7,
-        2,1,4,
+    6, 9, 8,
+    3, 5, 7,
+    2, 1, 4,
 
-        3,6,9,
-        2,5,8,
-        1,4,7,
+    3, 6, 9,
+    2, 5, 8,
+    1, 4, 7,
 
-        2,3,6,
-        1,5,9,
-        4,7,8
-};
+    2, 3, 6,
+    1, 5, 9,
+    4, 7, 8};
 
 // 5 level scales
-const double mScaleRatios[5] = { 1.0, 1.0 / 2, 1.0 / sqrt(2.0), sqrt(2.0), 2.0 };
+const double mScaleRatios[5] = {1.0, 1.0 / 2, 1.0 / sqrt(2.0), sqrt(2.0), 2.0};
 
-
-class gms_matcher
-{
-public:
+class gms_matcher {
+   public:
     // OpenCV Keypoints & Correspond Image Size & Nearest Neighbor Matches
-    gms_matcher(const vector<KeyPoint> &vkp1, const Size size1, const vector<KeyPoint> &vkp2, const Size size2, const vector<DMatch> &vDMatches)
-    {
+    gms_matcher(const vector<KeyPoint> &vkp1, const Size size1, const vector<KeyPoint> &vkp2, const Size size2, const vector<DMatch> &vDMatches) {
         // Input initialize
         NormalizePoints(vkp1, size1, mvP1);
         NormalizePoints(vkp2, size2, mvP2);
@@ -105,8 +99,7 @@ public:
     };
     ~gms_matcher() {};
 
-private:
-
+   private:
     // Normalized Points
     vector<Point2f> mvP1, mvP2;
 
@@ -145,23 +138,20 @@ private:
     Mat mGridNeighborLeft;
     Mat mGridNeighborRight;
 
-public:
-
+   public:
     // Get Inlier Mask
     // Return number of inliers
     int GetInlierMask(vector<bool> &vbInliers, bool WithScale = false, bool WithRotation = false);
 
-private:
-
+   private:
     // Normalize Key Points to Range(0 - 1)
     void NormalizePoints(const vector<KeyPoint> &kp, const Size &size, vector<Point2f> &npts) {
         const size_t numP = kp.size();
-        const int width   = size.width;
-        const int height  = size.height;
+        const int width = size.width;
+        const int height = size.height;
         npts.resize(numP);
 
-        for (size_t i = 0; i < numP; i++)
-        {
+        for (size_t i = 0; i < numP; i++) {
             npts[i].x = kp[i].pt.x / width;
             npts[i].y = kp[i].pt.y / height;
         }
@@ -170,8 +160,7 @@ private:
     // Convert OpenCV DMatch to Match (pair<int, int>)
     void ConvertMatches(const vector<DMatch> &vDMatches, vector<pair<int, int> > &vMatches) {
         vMatches.resize(mNumberMatches);
-        for (size_t i = 0; i < mNumberMatches; i++)
-        {
+        for (size_t i = 0; i < mNumberMatches; i++) {
             vMatches[i] = pair<int, int>(vDMatches[i].queryIdx, vDMatches[i].trainIdx);
         }
     }
@@ -183,7 +172,7 @@ private:
             x = floor(pt.x * mGridSizeLeft.width);
             y = floor(pt.y * mGridSizeLeft.height);
 
-            if (y >= mGridSizeLeft.height || x >= mGridSizeLeft.width){
+            if (y >= mGridSizeLeft.height || x >= mGridSizeLeft.width) {
                 return -1;
             }
         }
@@ -232,16 +221,14 @@ private:
     void VerifyCellPairs(int RotationType);
 
     // Get Neighbor 9
-    vector<int> GetNB9(const int idx, const Size& GridSize) {
+    vector<int> GetNB9(const int idx, const Size &GridSize) {
         vector<int> NB9(9, -1);
 
         int idx_x = idx % GridSize.width;
         int idx_y = idx / GridSize.width;
 
-        for (int yi = -1; yi <= 1; yi++)
-        {
-            for (int xi = -1; xi <= 1; xi++)
-            {
+        for (int yi = -1; yi <= 1; yi++) {
+            for (int xi = -1; xi <= 1; xi++) {
                 int idx_xx = idx_x + xi;
                 int idx_yy = idx_y + yi;
 
@@ -254,9 +241,8 @@ private:
         return NB9;
     }
 
-    void InitalizeNiehbors(Mat &neighbor, const Size& GridSize) {
-        for (int i = 0; i < neighbor.rows; i++)
-        {
+    void InitalizeNiehbors(Mat &neighbor, const Size &GridSize) {
+        for (int i = 0; i < neighbor.rows; i++) {
             vector<int> NB9 = GetNB9(i, GridSize);
             int *data = neighbor.ptr<int>(i);
             memcpy(data, &NB9[0], sizeof(int) * 9);
@@ -265,7 +251,7 @@ private:
 
     void SetScale(int Scale) {
         // Set Scale
-        mGridSizeRight.width = mGridSizeLeft.width  * mScaleRatios[Scale];
+        mGridSizeRight.width = mGridSizeLeft.width * mScaleRatios[Scale];
         mGridSizeRight.height = mGridSizeLeft.height * mScaleRatios[Scale];
         mGridNumberRight = mGridSizeRight.width * mGridSizeRight.height;
 
@@ -279,28 +265,22 @@ private:
 };
 
 int gms_matcher::GetInlierMask(vector<bool> &vbInliers, bool WithScale, bool WithRotation) {
-
     int max_inlier = 0;
 
-    if (!WithScale && !WithRotation)
-    {
+    if (!WithScale && !WithRotation) {
         SetScale(0);
         max_inlier = run(1);
         vbInliers = mvbInlierMask;
         return max_inlier;
     }
 
-    if (WithRotation && WithScale)
-    {
-        for (int Scale = 0; Scale < 5; Scale++)
-        {
+    if (WithRotation && WithScale) {
+        for (int Scale = 0; Scale < 5; Scale++) {
             SetScale(Scale);
-            for (int RotationType = 1; RotationType <= 8; RotationType++)
-            {
+            for (int RotationType = 1; RotationType <= 8; RotationType++) {
                 int num_inlier = run(RotationType);
 
-                if (num_inlier > max_inlier)
-                {
+                if (num_inlier > max_inlier) {
                     vbInliers = mvbInlierMask;
                     max_inlier = num_inlier;
                 }
@@ -309,15 +289,12 @@ int gms_matcher::GetInlierMask(vector<bool> &vbInliers, bool WithScale, bool Wit
         return max_inlier;
     }
 
-    if (WithRotation && !WithScale)
-    {
+    if (WithRotation && !WithScale) {
         SetScale(0);
-        for (int RotationType = 1; RotationType <= 8; RotationType++)
-        {
+        for (int RotationType = 1; RotationType <= 8; RotationType++) {
             int num_inlier = run(RotationType);
 
-            if (num_inlier > max_inlier)
-            {
+            if (num_inlier > max_inlier) {
                 vbInliers = mvbInlierMask;
                 max_inlier = num_inlier;
             }
@@ -325,20 +302,16 @@ int gms_matcher::GetInlierMask(vector<bool> &vbInliers, bool WithScale, bool Wit
         return max_inlier;
     }
 
-    if (!WithRotation && WithScale)
-    {
-        for (int Scale = 0; Scale < 5; Scale++)
-        {
+    if (!WithRotation && WithScale) {
+        for (int Scale = 0; Scale < 5; Scale++) {
             SetScale(Scale);
 
             int num_inlier = run(1);
 
-            if (num_inlier > max_inlier)
-            {
+            if (num_inlier > max_inlier) {
                 vbInliers = mvbInlierMask;
                 max_inlier = num_inlier;
             }
-
         }
         return max_inlier;
     }
@@ -347,50 +320,39 @@ int gms_matcher::GetInlierMask(vector<bool> &vbInliers, bool WithScale, bool Wit
 }
 
 void gms_matcher::AssignMatchPairs(int GridType) {
-
-    for (size_t i = 0; i < mNumberMatches; i++)
-    {
+    for (size_t i = 0; i < mNumberMatches; i++) {
         Point2f &lp = mvP1[mvMatches[i].first];
         Point2f &rp = mvP2[mvMatches[i].second];
 
         int lgidx = mvMatchPairs[i].first = GetGridIndexLeft(lp, GridType);
         int rgidx = -1;
 
-        if (GridType == 1)
-        {
+        if (GridType == 1) {
             rgidx = mvMatchPairs[i].second = GetGridIndexRight(rp);
-        }
-        else
-        {
+        } else {
             rgidx = mvMatchPairs[i].second;
         }
 
-        if (lgidx < 0 || rgidx < 0)	continue;
+        if (lgidx < 0 || rgidx < 0) continue;
 
         mMotionStatistics.at<int>(lgidx, rgidx)++;
         mNumberPointsInPerCellLeft[lgidx]++;
     }
-
 }
 
 void gms_matcher::VerifyCellPairs(int RotationType) {
-
     const int *CurrentRP = mRotationPatterns[RotationType - 1];
 
-    for (int i = 0; i < mGridNumberLeft; i++)
-    {
-        if (sum(mMotionStatistics.row(i))[0] == 0)
-        {
+    for (int i = 0; i < mGridNumberLeft; i++) {
+        if (sum(mMotionStatistics.row(i))[0] == 0) {
             mCellPairs[i] = -1;
             continue;
         }
 
         int max_number = 0;
-        for (int j = 0; j < mGridNumberRight; j++)
-        {
+        for (int j = 0; j < mGridNumberRight; j++) {
             int *value = mMotionStatistics.ptr<int>(i);
-            if (value[j] > max_number)
-            {
+            if (value[j] > max_number) {
                 mCellPairs[i] = j;
                 max_number = value[j];
             }
@@ -405,11 +367,10 @@ void gms_matcher::VerifyCellPairs(int RotationType) {
         double thresh = 0;
         int numpair = 0;
 
-        for (size_t j = 0; j < 9; j++)
-        {
+        for (size_t j = 0; j < 9; j++) {
             int ll = NB9_lt[j];
             int rr = NB9_rt[CurrentRP[j] - 1];
-            if (ll == -1 || rr == -1)	continue;
+            if (ll == -1 || rr == -1) continue;
 
             score += mMotionStatistics.at<int>(ll, rr);
             thresh += mNumberPointsInPerCellLeft[ll];
@@ -424,15 +385,13 @@ void gms_matcher::VerifyCellPairs(int RotationType) {
 }
 
 int gms_matcher::run(int RotationType) {
-
     mvbInlierMask.assign(mNumberMatches, false);
 
     // Initialize Motion Statisctics
     mMotionStatistics = Mat::zeros(mGridNumberLeft, mGridNumberRight, CV_32SC1);
     mvMatchPairs.assign(mNumberMatches, pair<int, int>(0, 0));
 
-    for (int GridType = 1; GridType <= 4; GridType++)
-    {
+    for (int GridType = 1; GridType <= 4; GridType++) {
         // initialize
         mMotionStatistics.setTo(0);
         mCellPairs.assign(mGridNumberLeft, -1);
@@ -442,11 +401,9 @@ int gms_matcher::run(int RotationType) {
         VerifyCellPairs(RotationType);
 
         // Mark inliers
-        for (size_t i = 0; i < mNumberMatches; i++)
-        {
+        for (size_t i = 0; i < mNumberMatches; i++) {
             if (mvMatchPairs[i].first >= 0) {
-                if (mCellPairs[mvMatchPairs[i].first] == mvMatchPairs[i].second)
-                {
+                if (mCellPairs[mvMatchPairs[i].first] == mvMatchPairs[i].second) {
                     mvbInlierMask[i] = true;
                 }
             }
