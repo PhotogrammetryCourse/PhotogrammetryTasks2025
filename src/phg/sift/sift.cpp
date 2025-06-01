@@ -453,12 +453,6 @@ bool phg::SIFT::buildDescriptor(const cv::Mat &img, float px, float py, double d
                     }
                 }
             }
-            float norm2 = 0.f;
-            for (float value : sum)
-                norm2 += value * value;
-            float norm = std::sqrt(norm2);
-            for (float &value : sum)
-                value /= norm;
 
             float *votes = &(descriptor[(hstj * DESCRIPTOR_SIZE + hsti) * DESCRIPTOR_NBINS]);  // нашли где будут лежать корзины нашей гистограммы
             for (int bin = 0; bin < DESCRIPTOR_NBINS; ++bin) {
@@ -466,5 +460,24 @@ bool phg::SIFT::buildDescriptor(const cv::Mat &img, float px, float py, double d
             }
         }
     }
+    float norm2 = 0.f;
+    for (float v : descriptor)
+        norm2 += v * v;
+    if (norm2 < 1e-8f)
+        return false;
+
+    float norm = std::sqrt(norm2);
+    for (float &v : descriptor)
+        v /= norm;
+
+    for (float &v : descriptor)
+        v = std::min(v, 0.2f);
+
+    norm2 = 0.f;
+    for (float v : descriptor)
+        norm2 += v * v;
+    norm = std::sqrt(norm2);
+    for (float &v : descriptor)
+        v /= norm;
     return true;
 }

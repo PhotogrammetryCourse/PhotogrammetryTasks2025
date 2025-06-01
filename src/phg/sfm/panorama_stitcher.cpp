@@ -6,6 +6,27 @@
 
 #include "homography.h"
 
+namespace {
+void dfs(int v, const std::vector<int> &parent, std::vector<bool> &used, std::vector<int> &result) {
+    used[v] = true;
+    int p = parent[v];
+    if (p != -1 && !used[p])
+        dfs(p, parent, used, result);
+    result.push_back(v);
+}
+
+std::vector<int> topological_sort(const std::vector<int> &parent) {
+    std::vector<int> result;
+    std::vector<bool> used(parent.size(), false);
+    for (int i = 0; i < parent.size(); ++i) {
+        if (!used[i]) {
+            dfs(i, parent, used, result);
+        }
+    }
+    return result;
+}
+}  // namespace
+
 /*
  * imgs - список картинок
  * parent - список индексов, каждый индекс указывает, к какой картинке должна быть приклеена текущая картинка
@@ -22,9 +43,14 @@ cv::Mat phg::stitchPanorama(const std::vector<cv::Mat> &imgs,
     // вектор гомографий, для каждой картинки описывает преобразование до корня
     std::vector<cv::Mat> Hs(n_images);
     {
-        // здесь надо посчитать вектор Hs
-        // при этом можно обойтись n_images - 1 вызовами функтора homography_builder
-        throw std::runtime_error("not implemented yet");
+        std::vector<int> order = topological_sort(parent);
+        if (n_images > 0)
+            Hs[order[0]] = cv::Mat::eye(3, 3, CV_64FC1);
+        for (int i = 1; i < n_images; ++i) {
+            int cur_img = order[i];
+            const cv::Mat homography_to_parent = homography_builder(imgs[cur_img], imgs[parent[cur_img]]);
+            Hs[cur_img] = Hs[parent[cur_img]] * homography_to_parent;
+        }
     }
 
     bbox2<double, cv::Point2d> bbox;
