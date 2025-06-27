@@ -23,7 +23,7 @@
 #define OCTAVE_DOG_IMAGES           (OCTAVE_NLAYERS + 2)
 #define INITIAL_IMG_SIGMA           0.75                 // предполагаемая степень размытия изначальной картинки
 #define INPUT_IMG_PRE_BLUR_SIGMA    1.0                  // сглаживание изначальной картинки
-   
+
 #define SUBPIXEL_FITTING_ENABLE      0    // такие тумблеры включающие/выключающие очередное улучшение алгоритма позволяют оценить какой вклад эта фича вносит в качество результата если в рамках уже готового алгоритма попробовать ее включить/выключить
 
 #define ORIENTATION_NHISTS           36   // число корзин при определении ориентации ключевой точки через гистограммы
@@ -389,13 +389,13 @@ void phg::SIFT::findLocalExtremasAndDescribe(const std::vector<cv::Mat> &gaussia
     desc = cv::Mat(pointsDesc.size(), DESCRIPTOR_SIZE * DESCRIPTOR_SIZE * DESCRIPTOR_NBINS, CV_32FC1);
     for (size_t j = 0; j < pointsDesc.size(); ++j) {
         rassert(pointsDesc[j].size() == DESCRIPTOR_SIZE * DESCRIPTOR_SIZE * DESCRIPTOR_NBINS, 1253351412421);
-        for (size_t i = 0; i < pointsDesc[i].size(); ++i) {
+        for (size_t i = 0; i < pointsDesc[j].size(); ++i) {
             desc.at<float>(j, i) = pointsDesc[j][i];
         }
     }
 }
 
-bool phg::SIFT::buildLocalOrientationHists(const cv::Mat &img, size_t i_f, size_t j_f, size_t radius,
+bool phg::SIFT::buildLocalOrientationHists(const cv::Mat &img, float i_f, float j_f, int radius,
                                            std::vector<float> &votes, float &biggestVote) {
     // 5 Orientation assignment
     votes.resize(ORIENTATION_NHISTS, 0.0f);
@@ -487,7 +487,7 @@ bool phg::SIFT::buildDescriptor(const cv::Mat &img, float px, float py, double d
     // Матрица для поворота системы координат на угол, обратный основной ориентации точки
     cv::Mat relativeShiftRotation = cv::getRotationMatrix2D(cv::Point2f(0.0f, 0.0f), -angle, 1.0);
 
-    
+
     // smpW - это расстояние между центрами семплов в сетке 16x16.
     const double smpW = 3.0 * descrSampleRadius;
 
@@ -538,9 +538,9 @@ bool phg::SIFT::buildDescriptor(const cv::Mat &img, float px, float py, double d
                     // НАЧАЛО: РЕАЛИЗАЦИЯ TODO (Инвариантность к повороту)
                     // Вычитаем основную ориентацию точки, чтобы ориентация градиента стала относительной.
                     // Это и обеспечивает инвариантность к повороту.
+                    if (orientation < 0.0f) orientation += 360.0f;
                     orientation -= angle;
-                    if (orientation <  0.0f)   orientation += 360.0f;
-                    if (orientation >= 360.0f) orientation -= 360.0f;
+                    orientation = fmodf(orientation + 360.0f, 360.0f);
                     // КОНЕЦ: РЕАЛИЗАЦИЯ TODO
 
                     rassert(orientation >= 0.0f && orientation < 360.0f, 3515215125412);
