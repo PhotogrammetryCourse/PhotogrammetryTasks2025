@@ -26,7 +26,7 @@ namespace phg {
         void findLocalExtremasAndDescribe(const std::vector<cv::Mat> &gaussianPyramid, const std::vector<cv::Mat> &DoGPyramid,
                                           std::vector<cv::KeyPoint> &keyPoints, cv::Mat &desc);
 
-        bool buildLocalOrientationHists(const cv::Mat &img, size_t i, size_t j, size_t radius,
+        bool buildLocalOrientationHists(const cv::Mat &img, float i, float j, int radius,
                                         std::vector<float> &votes, float &biggestVote);
 
         bool buildDescriptor(const cv::Mat &img, float px, float py, double descrRadius, float angle,
