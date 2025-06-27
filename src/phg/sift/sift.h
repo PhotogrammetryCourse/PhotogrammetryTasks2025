@@ -5,12 +5,16 @@
 #include <opencv2/core.hpp>
 
 
+
+// double contrast_threshold = 0.04; // Порог контрастности
+// double edge_threshold = 10.0;     // Порог для отсеивания точек на ребрах
+// они такие в статье Лоу
 namespace phg {
 
     class SIFT {
     public:
         // Можете добавить дополнительных параметров со значениями по умолчанию в конструктор если хотите
-        SIFT(double contrast_threshold = 0.5) : contrast_threshold(contrast_threshold) {}
+        SIFT(double contrast_threshold = 0.04, double edge_threshold = 10.0) : contrast_threshold(contrast_threshold) {}
 
         // Сигнатуру этого метода менять нельзя
         void detectAndCompute(const cv::Mat &originalImg, std::vector<cv::KeyPoint> &kps, cv::Mat &desc);
@@ -32,3 +36,8 @@ namespace phg {
     };
 
 }
+
+
+
+
+
