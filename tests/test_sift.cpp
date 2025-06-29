@@ -1,5 +1,4 @@
 #include <gtest/gtest.h>
-
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -75,7 +74,8 @@ void evaluateDetection(const cv::Mat &M, double minRecall, cv::Mat img0=cv::Mat(
 
     ASSERT_FALSE(img0.empty()); // проверка что картинка была загружена
     // убедитесь что рабочая папка (Edit Configurations...->Working directory) указывает на корневую папку проекта (и тогда картинка по умолчанию найдется по относительному пути - data/src/test_sift/unicorn.png)
-    
+
+
     size_t width = img0.cols;
     size_t height = img0.rows;
     cv::Mat transformedImage;
@@ -119,12 +119,11 @@ void evaluateDetection(const cv::Mat &M, double minRecall, cv::Mat img0=cv::Mat(
                 detector->compute(img1, kps1, desc1);
             } else if (method == 2) {
                 // TODO remove 'return' and uncomment
-                return;
-//                method_name = "SIFT_MY";
-//                log_prefix = "[SIFT_MY] ";
-//                phg::SIFT mySIFT;
-//                mySIFT.detectAndCompute(img0, kps0, desc0);
-//                mySIFT.detectAndCompute(img1, kps1, desc1);
+                method_name = "SIFT_MY";
+                log_prefix = "[SIFT_MY] ";
+                phg::SIFT mySIFT;
+                mySIFT.detectAndCompute(img0, kps0, desc0);
+                mySIFT.detectAndCompute(img1, kps1, desc1);
             } else {
                 rassert(false, 13532513412); // это не проверка как часть тестирования, это проверка что число итераций в цикле и if-else ветки все еще согласованы и не разошлись
             }
@@ -424,3 +423,4 @@ TEST (SIFT, HerzJesu19RotateM40) {
     double minRecall = 0.75;
     evaluateDetection(cv::getRotationMatrix2D(cv::Point(jesu19.cols/2, jesu19.rows/2), -angleDegreesClockwise, scale), minRecall, jesu19);
 }
+
